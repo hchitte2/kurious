@@ -96,8 +96,7 @@ export const IMAGE_ASPECT = '4:3'
  * Integration endpoints (spike S1). Run `npx deepspace integrations info <endpoint>`
  * before changing one. Both return base64 data URIs, never hosted URLs: upload
  * them to app file storage, never store a data URI on the card.
- * Fallbacks: image 'openai/generate-image' (gpt-image-1-mini, 1536x1024, quality low);
- * narration 'speech/text-to-speech' (tts-1 is ~10x cheaper than ElevenLabs).
+ * Image fallback: 'openai/generate-image' (gpt-image-1-mini, 1536x1024, quality low).
  */
 export const IMAGE = {
   endpoint: 'gemini/generate-image',
@@ -106,12 +105,18 @@ export const IMAGE = {
   mimeType: 'image/png',
 } as const
 
+/**
+ * Cheapest narration (human call): OpenAI tts-1, about $0.008 per card.
+ * Body: { input, model, voice, response_format, speed } -> { audioUrl: data URI }.
+ */
 export const NARRATION = {
-  endpoint: 'elevenlabs/generate-speech',
-  model: 'eleven_flash_v2_5',
-  /** "George", a warm storyteller. Confirm once with `elevenlabs/list-voices` in Block 2. */
-  voiceId: 'JBFqnCBsd6RMkjVDRZzb',
-  outputFormat: 'mp3_44100_64',
+  endpoint: 'speech/text-to-speech',
+  model: 'tts-1',
+  /** A warm storyteller voice. */
+  voice: 'fable',
+  responseFormat: 'mp3',
+  /** A touch slower for young listeners. */
+  speed: 0.92,
   mimeType: 'audio/mpeg',
 } as const
 

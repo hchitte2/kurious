@@ -165,8 +165,20 @@ export function registerRealtimeRoutes(app: Hono<AppContext>): void {
     ),
   )
 
-  app.get(
-    '/ws/jobs/:roomId',
-    wsRoute((env) => env.JOB_ROOMS),
-  )
+  // Kurious job rooms are worker-only: the ask route enqueues through the
+  // internal `enqueueJob` path after its sign-in + daily-cap checks. A client
+  // socket here could enqueue paid work directly and skip the cap, so only an
+  // app admin (the owner, for debugging) may connect at all. AppJobRoom's
+  // authorizeWrite/authorizeRead (worker.ts) enforce the same rule.
+  app.get('/ws/jobs/:roomId', async (c) => {
+    const token = new URL(c.req.url).searchParams.get('token')
+    const auth = token ? (await verifyJwt(jwtConfig(c.env), token)).result : null
+    if (!auth) return new Response('Unauthorized', { status: 401 })
+    if ((await resolveAppRole(c.env, auth.userId)) !== 'admin') {
+      return new Response('Forbidden', { status: 403 })
+    }
+    const roomRequest = authenticatedRoomRequest(c.req.raw, auth, { role: 'admin' })
+    const stub = c.env.JOB_ROOMS.get(c.env.JOB_ROOMS.idFromName(c.req.param('roomId')))
+    return stub.fetch(roomRequest)
+  })
 }

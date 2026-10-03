@@ -1,26 +1,20 @@
 <!DOCTYPE html>
 <!--
-  Active theme is set on the <html> element below.
-  To switch themes, change `data-theme` to any id defined in src/themes.ts.
-  Color values per theme live in src/themes.css.
+  Kurious has one light, paper-first theme (tokens in src/styles.css).
 -->
-<html lang="en" data-theme="slate">
+<html lang="en" data-theme="kurious">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/favicon.ico" />
-    <title>kurious</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FFF8EC" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Kurious</title>
     <!--
-      First-paint background, keyed to the data-theme attribute above.
-      Without this the browser paints white until the CSS bundle arrives —
-      a hard flash on the dark themes. Each value mirrors --color-background
-      in src/styles.css (slate) / src/themes.css; keep them in sync when
-      adding or editing themes.
+      First-paint background: mirrors --color-paper in src/styles.css so the
+      pre-CSS frame is already warm paper (no white or dark flash).
     -->
     <style>
-      html { background-color: #0a0a0a; color-scheme: dark; }
-      html[data-theme="paper"] { background-color: #ffffff; color-scheme: light; }
-      /* Add one line per theme you create, mirroring its --color-background. */
+      html { background-color: #FFF8EC; color-scheme: light; }
     </style>
   </head>
   <body>

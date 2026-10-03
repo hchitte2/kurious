@@ -1,18 +1,28 @@
 import { Link } from 'react-router-dom'
-import { APP_NAME } from '../constants'
+import { primaryButton } from '../components/kurious/buttons'
+import { KuriMessage } from '../components/kurious/KuriMessage'
+import { StaticHeader } from '../components/kurious/StaticHeader'
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center text-center px-4">
-      <title>{`Not found · ${APP_NAME}`}</title>
-      <h1 className="text-4xl font-bold text-foreground mb-2">404</h1>
-      <p className="text-muted-foreground mb-6">Page not found</p>
-      <Link
-        to="/home"
-        className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity"
-      >
-        Go home
-      </Link>
+    <div className="min-h-screen">
+      <title>Page not found | Kurious</title>
+      <StaticHeader />
+      <main className="py-16 md:py-24">
+        <KuriMessage
+          headingLevel={1}
+          state="thinking"
+          size={140}
+          title="Hmm, Kuri looked everywhere for this page."
+          actions={
+            <Link to="/" className={primaryButton}>
+              Ask something new
+            </Link>
+          }
+        >
+          It isn’t here. Maybe it flew away?
+        </KuriMessage>
+      </main>
     </div>
   )
 }

@@ -20,13 +20,15 @@ import { renderToString } from 'react-dom/server'
 // invisible to <Outlet>/<Link> imported from the other.
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import * as app from './pages/_app'
-import Landing from './pages/index'
+import About from './pages/about'
 
 // prerender.ts reads `origin` (canonical URLs, sitemap) and `noindex` from here.
 export { seo } from './seo'
 
+// `/` (Ask) lives under src/pages/(app)/ because it needs auth, so it is not
+// prerendered; /about is the static grown-ups page.
 export const PAGES: Record<string, ComponentType> = {
-  '/': Landing,
+  '/about': About,
 }
 
 export const PRERENDER_ROUTES = Object.keys(PAGES)

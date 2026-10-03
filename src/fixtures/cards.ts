@@ -192,7 +192,7 @@ const checking = record('fx-checking', 2, {
 })
 
 /** Picture is in, narration still recording. */
-const recording = record('fx-volcano', 3, {
+const recording = record('fx-volcano', 1, {
   question: 'Why do volcanoes erupt?',
   ageBand: 'big',
   status: 'illustrating',

@@ -1,4 +1,7 @@
 @import "tailwindcss" source(none);
+@import "@fontsource-variable/fredoka/wght.css";
+@import "@fontsource/andika/400.css";
+@import "@fontsource/andika/700.css";
 @import "./themes.css";
 
 /* Scan local source + SDK components for Tailwind class usage */
@@ -6,100 +9,84 @@
 @source "../node_modules/deepspace/dist/**/*.js";
 
 /*
- * Theming — pure shadcn/ui CSS variables with [data-theme] selectors.
+ * Kurious design tokens (docs/DESIGN.md is the source of truth).
  *
- * The @theme block below holds the default theme (slate). All other themes
- * live in `themes.css` as `[data-theme="<id>"]` override blocks. Switching
- * themes = changing the data-theme attribute on <html> in index.html. No
- * JS, no FOUC.
- *
- * Status colors (success, warning, info) are intentionally NOT themed —
- * they stay consistent across every preset.
+ * Light, paper-first. The Kurious palette lives on top; the shadcn tokens
+ * below it map the scaffold UI kit (Dialog, DropdownMenu, Popover, Toast) and
+ * the SDK's AuthOverlay onto the same palette so nothing looks borrowed.
  */
 @theme {
-  /* shadcn core tokens — slate (default): neutral gray on near-black, indigo accent */
-  --color-background: #0a0a0a;
-  --color-foreground: #e8eaed;
-  --color-card: #161616;
-  --color-card-foreground: #e8eaed;
-  --color-popover: #161616;
-  --color-popover-foreground: #e8eaed;
-  --color-primary: #818cf8;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #1e1e1e;
-  --color-secondary-foreground: #e8eaed;
-  --color-muted: #1e1e1e;
-  --color-muted-foreground: #9ca3af;
-  --color-accent: #262626;
-  --color-accent-foreground: #e8eaed;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --color-border: rgba(60, 64, 67, 0.6);
-  --color-input: rgba(60, 64, 67, 0.6);
-  --color-ring: #818cf8;
-  --radius: 0.5rem;
+  /* ── Kurious palette ───────────────────────────────────────────────── */
+  --color-paper: #fff8ec;
+  --color-paper-2: #fbefd9;
+  --color-paper-3: #f3e3c4;
+  --color-ink: #1e2a44;
+  --color-ink-soft: #4a5672;
+  --color-sun: #ff8a3d;
+  --color-sun-deep: #e06a1f;
+  --color-sky: #5bb6f0;
+  --color-sky-deep: #3a8fcb;
+  --color-leaf: #3fa86b;
+  --color-leaf-deep: #2d8453;
+  --color-star: #ffd23f;
+  --color-star-deep: #e0ac12;
+  --color-berry: #e85d8c;
+  --color-berry-deep: #c23e6c;
+  --color-night: #18203a;
+  --color-cream: #fffdf7;
 
-  /*
-   * Map the rounded-* utilities onto --radius so a theme (or you) can change
-   * the app's shape language in one place. At the default 0.5rem these equal
-   * Tailwind's stock values, so there is no visual change until a theme
-   * overrides --radius.
-   */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --font-display: "Fredoka Variable", "Fredoka", ui-rounded, system-ui, sans-serif;
+  --font-read: "Andika", "Atkinson Hyperlegible", system-ui, sans-serif;
+
+  --radius-card: 24px;
+  --radius-pill: 999px;
+
+  /* ── shadcn tokens mapped to the palette (UI kit + AuthOverlay) ─────── */
+  --color-background: #fff8ec;
+  --color-foreground: #1e2a44;
+  --color-card: #fffdf7;
+  --color-card-foreground: #1e2a44;
+  --color-popover: #fffdf7;
+  --color-popover-foreground: #1e2a44;
+  --color-primary: #ff8a3d;
+  --color-primary-foreground: #1e2a44;
+  --color-secondary: #fbefd9;
+  --color-secondary-foreground: #1e2a44;
+  --color-muted: #f3e3c4;
+  --color-muted-foreground: #4a5672;
+  --color-accent: #fbefd9;
+  --color-accent-foreground: #1e2a44;
+  --color-destructive: #c8384a;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(30, 42, 68, 0.14);
+  --color-input: rgba(30, 42, 68, 0.2);
+  --color-ring: #1e2a44;
+  --radius: 1rem;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
 
-  /* Status colors — constant across all themes */
-  --color-success: #10b981;
-  --color-success-foreground: #ffffff;
-  --color-warning: #f59e0b;
-  --color-warning-foreground: #ffffff;
-  --color-info: #3b82f6;
+  --color-success: #3fa86b;
+  --color-success-foreground: #1e2a44;
+  --color-warning: #e0ac12;
+  --color-warning-foreground: #1e2a44;
+  --color-info: #3a8fcb;
   --color-info-foreground: #ffffff;
 
-  /*
-   * Shadows — slate (default). Each theme in themes.css tunes these.
-   *
-   * Toned down 2026-05: previous values were 8px/12px offset with
-   * 32px/40px blur which read as a heavy halo under every Card on
-   * the page. New values are Linear/Stripe-style: barely-there at
-   * rest, slightly more present on hover.
-   *
-   * IMPORTANT: starter components (`Card`, `Dialog`, `CardGrid`,
-   * `Navigation`, `Toast`) intentionally use literal shadow values
-   * via `shadow-[…]` arbitrary-value classes, NOT the
-   * `shadow-card` / `shadow-card-hover` token classes Tailwind v4
-   * generates from this @theme block. Why: Tailwind's @theme directive
-   * compiles these tokens into the utility-class definitions at build
-   * time, and runtime [data-theme] overrides don't always cancel the
-   * baked baseline cleanly — apps switching themes were getting the
-   * slate value carried forward on the compiled `shadow-card` class.
-   * Sidestepping the token system in starter components is the
-   * deterministic fix. See docs/platform/theming-shadows.md.
-   */
-  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.12);
-  --shadow-card-hover: 0 2px 8px 0 rgba(0, 0, 0, 0.16);
+  --shadow-card: 0 4px 0 rgba(30, 42, 68, 0.12);
+  --shadow-card-hover: 0 6px 0 rgba(30, 42, 68, 0.14);
 
-  /* Shell tokens: the area behind a multi-panel layout, and the raised
-     surface a page renders into. Used by templates whose (app)/_layout is a
-     shell (e.g. copilot's sidebar | panel | chat); a single-column layout
-     simply doesn't reference them. In every theme keep the panel reading as
-     elevated: dark → panel lighter than shell; light → white panel on a
-     faintly darker shell. */
-  --color-shell: #0a0a0a;
-  --color-shell-panel: #161616;
+  --color-shell: #fbefd9;
+  --color-shell-panel: #fff8ec;
 
-  /* Animations */
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Theme override blocks live in `themes.css` — imported above. */
-
 /*
- * Animation keyframes for shadcn components.
- * These replace the tailwindcss-animate plugin which is not compatible with Tailwind v4.
+ * Animation keyframes for the UI kit (replaces tailwindcss-animate).
  */
 @keyframes animate-in {
   from { opacity: var(--tw-enter-opacity, 1); transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) rotate(var(--tw-enter-rotate, 0)); }
@@ -112,7 +99,6 @@
 @utility animate-in {
   animation-name: animate-in;
   animation-duration: 150ms;
-  /* `both` prevents a one-frame flash before entry / after exit. */
   animation-fill-mode: both;
   --tw-enter-opacity: initial;
   --tw-enter-scale: initial;
@@ -124,7 +110,6 @@
 @utility animate-out {
   animation-name: animate-out;
   animation-duration: 150ms;
-  /* `both` prevents a one-frame flash before entry / after exit. */
   animation-fill-mode: both;
   --tw-exit-opacity: initial;
   --tw-exit-scale: initial;
@@ -146,89 +131,280 @@
 @utility slide-out-to-left-2 { --tw-exit-translate-x: -0.5rem; }
 @utility slide-out-to-right-2 { --tw-exit-translate-x: 0.5rem; }
 
-
-/*
- * Custom base styles — must be in @layer base so utility classes can override.
- */
 @layer base {
   html {
-    /* Default to dark for native form controls (calendar icons, scrollbars).
-     * Light themes opt into `color-scheme: light` in themes.css. */
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   html, body, #root {
     min-height: 100vh;
-    background-color: var(--color-background);
-    scroll-behavior: smooth;
+    background-color: var(--color-paper);
   }
 
   body {
-    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-display);
+    font-size: 15px;
     line-height: 1.5;
+    color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 14px;
-    color: var(--color-foreground);
+    /* A whisper of paper grain: the one texture on the page. */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.42  0 0 0 0 0.2  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  @media (min-width: 768px) {
+    body { font-size: 16px; }
   }
 
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    border-radius: 0.25rem;
-    background-color: var(--color-border);
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-muted-foreground);
-  }
-
-  /* Selection styling */
   ::selection {
-    background-color: var(--color-primary);
-    color: var(--color-primary-foreground);
+    background-color: var(--color-star);
+    color: var(--color-ink);
   }
 
-  /*
-   * Focus indication is intentionally NOT applied app-wide via a
-   * `*:focus-visible` rule. Doing so paints a colored outline onto
-   * every focusable element on the page — including programmatically
-   * focusable containers like Radix DismissableLayer wrappers,
-   * dialog overlays, and any element with `tabindex={-1}` used for
-   * scroll containment. The result reads as "the entire panel /
-   * dialog is selected" the moment a child button is clicked.
-   *
-   * Per-component focus indicators (e.g. shadcn's
-   * `focus-visible:ring-1` on Button, `focus-visible:border-ring` on
-   * Input / Textarea / Select) are sufficient for keyboard
-   * accessibility and don't bleed onto containers.
-   *
-   * If you DO need a global indicator for very keyboard-heavy apps,
-   * scope it tightly — e.g. only to interactive elements:
-   *
-   *   a:focus-visible,
-   *   button:focus-visible,
-   *   [role="button"]:focus-visible,
-   *   input:focus-visible,
-   *   select:focus-visible,
-   *   textarea:focus-visible {
-   *     outline: 2px solid var(--color-primary);
-   *     outline-offset: 2px;
-   *   }
-   *
-   * — never `*`.
-   */
+  /* Visible keyboard focus, scoped to interactive elements only. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [role="radio"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  label:has(> input:focus-visible) {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 3px;
+  }
 
-  /* Prevent 300ms tap delay on mobile */
   a, button, [role="button"], input, select, textarea {
     touch-action: manipulation;
   }
+
+  button:not(:disabled), [role="button"] {
+    cursor: pointer;
+  }
+}
+
+/*
+ * "Cut paper" surfaces: solid offset shadow in a darker tint of the
+ * element's own color. Press moves it down 2px and the shadow shrinks.
+ *   <button class="cut tone-sun">   full color
+ *   <button class="cut tint-sky">   light tint, shadow in the full color
+ */
+@layer components {
+  .cut {
+    --tone: var(--color-cream);
+    --tone-deep: rgba(30, 42, 68, 0.16);
+    --lift: 4px;
+    background-color: var(--tone);
+    box-shadow: 0 var(--lift) 0 var(--tone-deep);
+    transition: transform 110ms ease-out, box-shadow 110ms ease-out, background-color 150ms ease;
+  }
+  .cut:active:not(:disabled):not([aria-disabled="true"]),
+  .cut[data-pressed="true"] {
+    transform: translateY(2px);
+    box-shadow: 0 calc(var(--lift) - 2px) 0 var(--tone-deep);
+  }
+  .cut:disabled,
+  .cut[aria-disabled="true"] {
+    cursor: default;
+  }
+  .cut-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 calc(var(--lift) + 3px) 0 var(--tone-deep);
+  }
+
+  .tone-sun { --tone: var(--color-sun); --tone-deep: var(--color-sun-deep); }
+  .tone-sky { --tone: var(--color-sky); --tone-deep: var(--color-sky-deep); }
+  .tone-leaf { --tone: var(--color-leaf); --tone-deep: var(--color-leaf-deep); }
+  .tone-star { --tone: var(--color-star); --tone-deep: var(--color-star-deep); }
+  .tone-berry { --tone: var(--color-berry); --tone-deep: var(--color-berry-deep); }
+  .tone-cream { --tone: var(--color-cream); --tone-deep: rgba(30, 42, 68, 0.16); }
+  .tone-paper { --tone: var(--color-paper-2); --tone-deep: var(--color-paper-3); }
+
+  .tint-sun { --tone: #ffe3cf; --tone-deep: var(--color-sun); }
+  .tint-sky { --tone: #d9eefc; --tone-deep: var(--color-sky); }
+  .tint-leaf { --tone: #d6efdf; --tone-deep: var(--color-leaf); }
+  .tint-star { --tone: #fff1bd; --tone-deep: var(--color-star-deep); }
+  .tint-berry { --tone: #fcdce7; --tone-deep: var(--color-berry); }
+
+  /* The paper placeholder behind a picture that's still being painted. */
+  .paper-slot {
+    background-color: var(--color-paper-2);
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 0 18%, transparent 19%),
+      radial-gradient(circle at 78% 64%, rgba(255, 255, 255, 0.22) 0 22%, transparent 23%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5  0 0 0 0 0.38  0 0 0 0 0.16  0 0 0 .16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────── */
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+@keyframes brush-reveal {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+}
+@keyframes paint-path {
+  0% { stroke-dashoffset: 1; opacity: 0.55; }
+  45% { stroke-dashoffset: 0; opacity: 0.55; }
+  80% { stroke-dashoffset: 0; opacity: 0.55; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes sound-ring {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
+
+.rise-in { animation: rise-in 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.pop-in { animation: pop-in 380ms cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.fade-in { animation: fade-in 300ms ease both; }
+
+.shimmer-line {
+  background: linear-gradient(90deg, var(--color-paper-3) 0%, #fff6e4 45%, var(--color-paper-3) 90%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.brush-reveal {
+  -webkit-mask-image: linear-gradient(105deg, #000 42%, rgba(0, 0, 0, 0.6) 47%, transparent 56%);
+  mask-image: linear-gradient(105deg, #000 42%, rgba(0, 0, 0, 0.6) 47%, transparent 56%);
+  -webkit-mask-size: 260% 100%;
+  mask-size: 260% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: brush-reveal 1400ms cubic-bezier(0.45, 0.05, 0.3, 1) both;
+}
+
+.paint-path {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  opacity: 0.55;
+  animation: paint-path 3.6s cubic-bezier(0.55, 0.1, 0.35, 1) infinite;
+}
+
+.twinkle { animation: twinkle 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+
+.sound-ring { animation: sound-ring 1.4s ease-out infinite; }
+
+.bounce-dot { animation: bounce-dot 1.1s ease-in-out infinite; }
+
+/* Kuri: one static SVG, CSS-animated parts. */
+.kuri .kuri-part { transform-box: fill-box; transform-origin: center; }
+.kuri .kuri-lid { transform-box: fill-box; transform-origin: 50% 0%; transform: scaleY(0); }
+.kuri .kuri-prop { opacity: 0; transition: opacity 250ms ease; }
+
+@keyframes kuri-blink {
+  0%, 91%, 100% { transform: scaleY(0); }
+  94% { transform: scaleY(1); }
+  97% { transform: scaleY(0.1); }
+}
+@keyframes kuri-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2.5px); }
+}
+@keyframes kuri-tilt {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+@keyframes kuri-look-up {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(2px, -3px); }
+}
+@keyframes kuri-brush {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(16deg); }
+}
+@keyframes kuri-wing-flap {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-14deg); }
+}
+@keyframes kuri-wave {
+  0% { opacity: 0; transform: translateX(-3px) scale(0.85); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(4px) scale(1.1); }
+}
+@keyframes kuri-dot {
+  0%, 100% { opacity: 0.2; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+.kuri .kuri-lid { animation: kuri-blink 5s ease-in-out infinite; }
+.kuri .kuri-lid-r { animation-delay: 0.04s; }
+.kuri .kuri-body { animation: kuri-bob 3.2s ease-in-out infinite; }
+
+.kuri[data-state="thinking"] .kuri-head { transform-origin: 50% 60%; animation: kuri-tilt 2.4s ease-in-out infinite; }
+.kuri[data-state="thinking"] .kuri-pupils { animation: kuri-look-up 2.4s ease-in-out infinite; }
+.kuri[data-state="thinking"] .kuri-think { opacity: 1; }
+.kuri[data-state="thinking"] .kuri-think circle { animation: kuri-dot 1.2s ease-in-out infinite; }
+.kuri[data-state="thinking"] .kuri-think circle:nth-child(2) { animation-delay: 0.2s; }
+.kuri[data-state="thinking"] .kuri-think circle:nth-child(3) { animation-delay: 0.4s; }
+
+.kuri[data-state="painting"] .kuri-brush { opacity: 1; }
+.kuri[data-state="painting"] .kuri-brush-arm { transform-origin: 0% 100%; animation: kuri-brush 1.1s ease-in-out infinite; }
+.kuri[data-state="painting"] .kuri-wing-r { transform-origin: 50% 10%; animation: kuri-wing-flap 1.1s ease-in-out infinite; }
+
+.kuri[data-state="recording"] .kuri-waves { opacity: 1; }
+.kuri[data-state="recording"] .kuri-waves path { animation: kuri-wave 1.3s ease-out infinite; }
+.kuri[data-state="recording"] .kuri-waves path:nth-child(2) { animation-delay: 0.25s; }
+.kuri[data-state="recording"] .kuri-waves path:nth-child(3) { animation-delay: 0.5s; }
+
+.kuri[data-state="sad"] .kuri-lid { animation: none; transform: scaleY(0.42); }
+.kuri[data-state="sad"] .kuri-pupils { transform: translateY(3px); }
+.kuri[data-state="sad"] .kuri-brows { opacity: 1; }
+.kuri[data-state="sad"] .kuri-head { transform-origin: 50% 70%; transform: rotate(-5deg); }
+.kuri[data-state="sad"] .kuri-body { animation-duration: 5s; }
+
+/* prefers-reduced-motion: every animation becomes a simple fade (or stops). */
+@media (prefers-reduced-motion: reduce) {
+  .kuri *,
+  .twinkle,
+  .paint-path,
+  .sound-ring,
+  .bounce-dot,
+  .shimmer-line {
+    animation: none !important;
+  }
+  .kuri .kuri-lid { transform: scaleY(0); }
+  .kuri[data-state="sad"] .kuri-lid { transform: scaleY(0.42); }
+  .paint-path { stroke-dashoffset: 0; opacity: 0.55; }
+  .rise-in,
+  .pop-in,
+  .brush-reveal {
+    animation: fade-in 240ms ease both !important;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .cut, .cut-lift:hover { transition: none; }
+  .cut-lift:hover { transform: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* Hide the horizontal scrollbar on the Wonder Wall strip but keep it scrollable. */
+.scroll-strip {
+  scrollbar-width: none;
+}
+.scroll-strip::-webkit-scrollbar {
+  display: none;
 }

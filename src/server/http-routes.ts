@@ -236,6 +236,12 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
     if (!auth && billingMode === 'user') {
       return c.json({ error: 'Sign in required for this integration' }, 401)
     }
+    // Kurious: every owner-billed integration (picture, narration) runs inside
+    // the make-card job, behind sign-in and the daily caps. A direct browser
+    // call here would bill the owner with no cap, so it is admin-only.
+    if (billingMode === 'developer' && !(await isAdmin(c.env, auth?.userId ?? null))) {
+      return c.json({ error: auth ? 'forbidden' : 'unauthorized' }, auth ? 403 : 401)
+    }
 
     const target = `/api/integrations/${integrationName}/${c.req.param('endpoint')}`
     const headers: Record<string, string> = {
@@ -274,6 +280,27 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
   })
 }
 
+async function isAdmin(env: Env, userId: string | null): Promise<boolean> {
+  if (!userId) return false
+  return (await resolveAppRole(env, userId)) === 'admin'
+}
+
+/**
+ * A GET/HEAD that names one file (`/api/files/<key>`), as opposed to a write
+ * or a listing (`/api/files`, `/api/files/`, `/api/files/./`). Mirrors how the
+ * platform resolves the subpath; an undecodable path counts as "not a read".
+ */
+function isSingleFileRead(method: string, url: URL): boolean {
+  if (method !== 'GET' && method !== 'HEAD') return false
+  let subpath: string
+  try {
+    subpath = decodeURIComponent(url.pathname.slice('/api/files'.length))
+  } catch {
+    return false
+  }
+  return subpath.split('/').some((segment) => segment !== '' && segment !== '.')
+}
+
 /** Register scoped-file and authenticated browser-to-platform proxies. */
 export function registerPlatformProxyRoutes(app: Hono<AppContext>): void {
   // Scoped R2 files → platform-worker. The app has no local R2 binding; the
@@ -287,6 +314,17 @@ export function registerPlatformProxyRoutes(app: Hono<AppContext>): void {
     const userId = auth?.userId ?? null
 
     const url = new URL(c.req.url)
+
+    // Kurious: only the worker writes files (card media, app scope). Clients
+    // may only READ one file by key. Everything else is admin-only:
+    //  - any write (upload/multipart/delete): a member could overwrite a
+    //    public card's picture, or fill the owner's shared storage quota;
+    //  - the bare app-scope listing (`GET /api/files?scope=app`), which the
+    //    platform serves to anyone, signed out included (spike S5).
+    // Single-file GET/HEAD stays public and keeps Range / If-None-Match.
+    if (!isSingleFileRead(c.req.method, url) && !(await isAdmin(c.env, userId))) {
+      return c.json({ error: userId ? 'forbidden' : 'unauthorized' }, userId ? 403 : 401)
+    }
     const platformUrl = new URL(c.req.url)
     platformUrl.pathname = url.pathname.replace('/api/files', '/internal/files')
 

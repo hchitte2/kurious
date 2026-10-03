@@ -15,7 +15,7 @@
  */
 
 import { Suspense } from 'react'
-import { Outlet, useRouteError } from 'react-router-dom'
+import { Outlet, ScrollRestoration, useRouteError } from 'react-router-dom'
 import { ErrorScreen } from '../components/ErrorScreen'
 import { ToastProvider, TooltipProvider } from '@/components/ui'
 
@@ -29,8 +29,10 @@ export default function App() {
         {/* data-testid="app-root" is the canonical "app shell mounted" hook,
             present on every page (static and dynamic). Don't rename without
             updating templates/tests. */}
-        <div data-testid="app-root" className="min-h-screen bg-background text-foreground">
-          <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-muted-foreground">Loading...</div>}>
+        <div data-testid="app-root" className="min-h-screen text-ink">
+          {/* New page = start at the top (Back still restores where you were). */}
+          <ScrollRestoration />
+          <Suspense fallback={<div aria-busy="true" className="min-h-screen" />}>
             <Outlet />
           </Suspense>
         </div>
@@ -53,8 +55,6 @@ export function Catch() {
 /** Root fallback shown while Generouted loads the first lazy route module. */
 export function HydrateFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-      Loading...
-    </div>
+    <div aria-busy="true" className="min-h-screen bg-paper" />
   )
 }

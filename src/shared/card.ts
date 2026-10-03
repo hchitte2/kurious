@@ -222,13 +222,83 @@ export interface CardView {
   updatedAt: string
 }
 
+/**
+ * Turn a raw record `data` into a full CardData. The record room drops null
+ * columns on read, so records arrive with fields missing: always normalize.
+ */
+export function toCardData(raw: unknown): CardData {
+  const r = isObject(raw) ? raw : {}
+  return {
+    ownerId: str(r.ownerId) ?? '',
+    question: str(r.question) ?? '',
+    normalizedQuestion: str(r.normalizedQuestion) ?? '',
+    ageBand: oneOf(AGE_BANDS, r.ageBand) ?? DEFAULT_AGE_BAND,
+    status: oneOf(CARD_STATUSES, r.status) ?? 'error',
+    paragraph: str(r.paragraph),
+    keyIdea: str(r.keyIdea),
+    followUps: strings(r.followUps),
+    imagePrompt: str(r.imagePrompt),
+    imageUrl: str(r.imageUrl),
+    audioUrl: str(r.audioUrl),
+    parentCardId: str(r.parentCardId),
+    rootCardId: str(r.rootCardId),
+    trail: trailOf(r.trail),
+    safety: safetyOf(r.safety),
+    check: checkOf(r.check),
+    writerModel: str(r.writerModel),
+    reusedFromCardId: str(r.reusedFromCardId),
+    wall: r.wall === 'public' ? 'public' : 'private',
+    errorMessage: str(r.errorMessage),
+  }
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const str = (value: unknown): string | null => (typeof value === 'string' ? value : null)
+
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+
+function oneOf<T extends string>(options: readonly T[], value: unknown): T | null {
+  return typeof value === 'string' && (options as readonly string[]).includes(value) ? (value as T) : null
+}
+
+function trailOf(value: unknown): TrailStop[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((stop) =>
+    isObject(stop) && typeof stop.cardId === 'string' && typeof stop.question === 'string'
+      ? [{ cardId: stop.cardId, question: stop.question }]
+      : [],
+  )
+}
+
+function safetyOf(value: unknown): CardSafety | null {
+  if (!isObject(value)) return null
+  const label = oneOf(SAFETY_LABELS, value.label)
+  return label ? { label, personal: value.personal === true } : null
+}
+
+function checkOf(value: unknown): CardCheck | null {
+  if (!isObject(value)) return null
+  const verdict = oneOf(['pass', 'fail'] as const, value.verdict)
+  if (!verdict) return null
+  return {
+    verdict,
+    issues: strings(value.issues),
+    checkerModel: str(value.checkerModel) ?? '',
+    rewrites: typeof value.rewrites === 'number' ? value.rewrites : 0,
+  }
+}
+
+/** Accepts a raw record (`useQuery` envelope) and normalizes its data first. */
 export function toCardView(record: {
   recordId: string
-  data: CardData
+  data: unknown
   createdAt: string
   updatedAt: string
 }): CardView {
-  const d = record.data
+  const d = toCardData(record.data)
   return {
     id: record.recordId,
     question: d.question,
@@ -285,11 +355,14 @@ export interface AskResponse {
   remainingToday: number
 }
 
+/** Error codes for POST /api/ask and POST retry. */
 export const ASK_ERROR_CODES = [
   'unauthenticated',
   'daily_cap_reached',
   'invalid_question',
   'parent_not_found',
+  'not_found',
+  'not_retryable',
   'server_error',
 ] as const
 export type AskErrorCode = (typeof ASK_ERROR_CODES)[number]

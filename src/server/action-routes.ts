@@ -62,7 +62,58 @@ export function registerActionRoutes(app: Hono<AppContext>, resolveAuth: Resolve
   })
 }
 
-function createActionTools(env: Env, userId: string, callerJwt: string): ActionTools {
+/**
+ * Call one integration endpoint through the api-worker. Developer-billed
+ * integrations (src/integrations.ts) bill the app owner; user-billed ones bill
+ * `callerJwt`. Pass `signal` to bound the call (background jobs do).
+ */
+export async function callIntegration<T>(
+  env: Env,
+  endpoint: string,
+  data: unknown,
+  options: { callerJwt: string; signal?: AbortSignal },
+): Promise<ActionResult<T>> {
+  const integrationName = endpoint.split('/')[0]
+  const billingMode = integrations[integrationName]?.billing ?? 'developer'
+
+  // The api-worker bills the JWT subject: owner for developer mode, caller
+  // for user mode. It does not accept a client-supplied billing override.
+  const jwt = billingMode === 'developer' ? env.APP_OWNER_JWT : options.callerJwt
+
+  const res = await apiWorkerFetch(env, `/api/integrations/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    body: JSON.stringify(data ?? {}),
+    signal: options.signal,
+  })
+  const raw = await res.text()
+  let payload: unknown = null
+  try {
+    payload = raw ? JSON.parse(raw) : null
+  } catch {
+    payload = { error: raw.slice(0, 200) }
+  }
+  const failed =
+    !res.ok ||
+    typeof payload !== 'object' ||
+    payload === null ||
+    (payload as { success?: unknown }).success === false
+  if (failed) {
+    return { success: false, ...normalizeApiError(res.status, payload) }
+  }
+  return payload as ActionResult<T>
+}
+
+/**
+ * The tools an action (or the app itself) uses to reach records and
+ * integrations. RBAC is OFF for these calls (X-App-Action): `userId` is the
+ * identity they act as. Background work passes `env.OWNER_USER_ID` and
+ * `env.APP_OWNER_JWT` to act as the app.
+ */
+export function createActionTools(env: Env, userId: string, callerJwt: string): ActionTools {
   const stub = env.RECORD_ROOMS.get(env.RECORD_ROOMS.idFromName(`app:${env.DEEPSPACE_APP_ID}`))
 
   // The DO returns ActionResult<unknown>; callers below supply the precise
@@ -85,29 +136,6 @@ function createActionTools(env: Env, userId: string, callerJwt: string): ActionT
     return res.json() as Promise<ActionResult<TData>>
   }
 
-  async function callIntegration<T>(endpoint: string, data?: unknown): Promise<ActionResult<T>> {
-    const integrationName = endpoint.split('/')[0]
-    const billingMode = integrations[integrationName]?.billing ?? 'developer'
-
-    // The api-worker bills the JWT subject: owner for developer mode, caller
-    // for user mode. It does not accept a client-supplied billing override.
-    const jwt = billingMode === 'developer' ? env.APP_OWNER_JWT : callerJwt
-
-    const res = await apiWorkerFetch(env, `/api/integrations/${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${jwt}`,
-      },
-      body: JSON.stringify(data ?? {}),
-    })
-    const payload = (await res.json()) as Record<string, unknown>
-    if (!res.ok || payload.success === false) {
-      return { success: false, ...normalizeApiError(res.status, payload) }
-    }
-    return payload as ActionResult<T>
-  }
-
   return {
     create: (collection, data, recordId) =>
       execTool('records.create', { collection, data, recordId }),
@@ -118,7 +146,7 @@ function createActionTools(env: Env, userId: string, callerJwt: string): ActionT
       execTool('records.deleteWhere', { collection, where, limit }),
     get: (collection, recordId) => execTool('records.get', { collection, recordId }),
     query: (collection, options) => execTool('records.query', { collection, ...options }),
-    integration: callIntegration,
+    integration: (endpoint, data) => callIntegration(env, endpoint, data, { callerJwt }),
     registerUser: (options) => execTool('users.register', { ...options }),
   }
 }

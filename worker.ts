@@ -11,6 +11,7 @@ import {
   armCronRoom,
   CanvasRoom,
   CronRoom,
+  isAnonymousUserId,
   JobRoom,
   PresenceRoom,
   RecordRoom,
@@ -26,6 +27,7 @@ import { tasks as cronTasks, runTask as runCronTask } from './src/cron.js'
 import { runJob } from './src/jobs.js'
 import { schemas } from './src/schemas.js'
 import { registerActionRoutes } from './src/server/action-routes.js'
+import { registerCardRoutes } from './src/server/card-routes.js'
 import {
   registerAuthAndIntegrationRoutes,
   registerPlatformProxyRoutes,
@@ -65,14 +67,20 @@ export class AppCronRoom extends CronRoom<Env> {
   }
 }
 
-/** Runs durable background work defined in src/jobs.ts. */
+/**
+ * Runs durable background work defined in src/jobs.ts.
+ *
+ * Admin-only over the socket: paid jobs are enqueued only by worker routes
+ * (via `enqueueJob`, which does not pass through these checks) after sign-in
+ * and the daily caps. A member socket could otherwise enqueue `make-card`
+ * directly and bypass the cap. authorizeRead defaults to authorizeWrite.
+ */
 export class AppJobRoom extends JobRoom<Env> {
   constructor(state: DurableObjectState, env: Env) {
     super(state, env, {
       authorizeWrite: async (user) => {
-        if (user.userId.startsWith('anon-')) return false
-        const role = await resolveAppRole(env, user.userId)
-        return role === 'member' || role === 'admin'
+        if (isAnonymousUserId(user.userId)) return false
+        return (await resolveAppRole(env, user.userId)) === 'admin'
       },
     })
   }
@@ -137,6 +145,9 @@ app.use('*', async (c, next) => {
 registerAuthAndIntegrationRoutes(app)
 registerRealtimeRoutes(app)
 registerActionRoutes(app, resolveAuth)
+// Kurious: /api/ask, /api/wall, /api/cards/:id(/retry). Before the proxies
+// and the static fallback, whose API guard 404s anything unmatched.
+registerCardRoutes(app)
 // The in-app assistant stores chat history in `ai-chats` / `ai-messages`,
 // which only the copilot overlay declares. When present, registerAgent enables
 // both that website AI and the user's local Codex/Claude/etc. assistant.
