@@ -32,6 +32,9 @@ Verification is batched into Block 6 (end of day). Be honest: mark who actually 
 | 2026-10-03 | Deploy (prod) | OAuth completion lands on `/`; Wall shows the Checked card with an empty trail and only CardView keys | `curl` | agent | pass | release rel_01M41Z8ZWNT1RNCYRWXCFH2WHP (deploy needed 3 retries of a transient `fetch failed`) |
 | 2026-10-03 | Prod live (new prompts) | Leaves (6-8): Checked in 20 s. Moon (9-11): checker (GPT-6) caught a wrong ball-and-lamp demo in the paragraph and image prompt after one rewrite -> no badge, off the Wall | `live-prod.spec.ts` single-card mode + `deepspace logs --search check` | agent | pass | The cross-provider check catching a real error in the writer's (Claude's) card |
 | 2026-10-03 | Ship | No secret patterns (API keys, JWTs, GitHub tokens, private keys) in tracked files; no tracked secret files; `reference/` untracked | `git grep` sweep | agent | pass | |
+| 2026-10-03 | Agent tools (prod) | `agent tools kurious` lists wall_list, card_get, my_cards, usage_today; `usage_today` and `wall_list` return live data | `npx deepspace agent tools/invoke` | agent | pass | Read-only, free; identity from the verified agent token |
+| 2026-10-03 | Daily cap (prod) | Test account's 6th card that day refused: POST /api/ask 429, UI shows the "owl nap" copy | live spec + `deepspace logs` | agent | pass | Found by accident while verifying knowledge |
+| 2026-10-03 | Managed knowledge (prod) | 26 misconception cards seeded on first card; after moving the lookup alongside safety (12 s timeout), "Why do camels have humps?" retrieved `camel-humps@1.00` and the card opens "A camel's hump isn't full of water, it's full of fat." (Checked, 20 s) | live spec + `deepspace logs --search make-card` | agent | pass | First two searches timed out at 4 s (failed open, cards still made) -> fixed |
 
 ## Human interventions
 Every time you overrode, corrected or took over from the agent.
