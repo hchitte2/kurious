@@ -25,18 +25,11 @@ Cloudflare Workers via `npx deepspace deploy`.
 
 ## Version control
 
-The app's **cloud repo** on the DeepSpace platform is the default version
-control; no external account is needed. The first DeepSpace push/pull/deploy
-command installs its Git remote as `space`. **Don't set up GitHub (or another
-git host) unless the developer explicitly asks.** With the default DeepSpace
-source, commit before you deploy: the release records that commit and refuses
-a dirty worktree. When the app ships from GitHub (latched from the checkout's
-remote at the app's first release, permanently), deploy instead ships the
-current checkout, including dirty or unpushed bytes, and records no commit
-lineage for that release; use ordinary Git to decide what should be committed
-and pushed. For parallel DeepSpace-source work: `workspace new -t "<task>"` →
-commit → `workspace sync` → `workspace land`. Use `status`, `activity`,
-`releases`, and `rollback` to recover context and inspect what is live.
+**This app's source is GitHub (`hchitte2/kurious`), latched permanently on the first
+deploy.** DeepSpace source verbs (`push`, `pull`, `clone`, `workspace`) refuse with
+`source_managed_by_github`; never run them. Deploys ship the local working tree, dirty bytes
+included, so commit (and push to GitHub) before every deploy. See CLAUDE.md for the
+project rules; they take precedence over the generic scaffold guidance in this file.
 
 ## Project commands
 
@@ -44,7 +37,6 @@ commit → `workspace sync` → `workspace land`. Use `status`, `activity`,
 npx deepspace auth login   # authenticate with app.space
 npx deepspace dev start    # local dev server (vite + miniflare)
 npx deepspace deploy       # deploy to <app>.app.space
-npx deepspace push         # sync code to the app's cloud repo
 npx deepspace add --list   # list optional features (messaging, etc.)
 npx deepspace add <feature>
 ```

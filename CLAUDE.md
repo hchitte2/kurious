@@ -31,9 +31,10 @@ on all day anyway, because they're cheap and save time:
 - **Worker:** Hono on Cloudflare Workers; Durable Objects via the SDK.
 - **Imports:** `deepspace` (client), `deepspace/worker` (rooms, schemas, AI, knowledge),
   `deepspace/testing`.
-- **AI:** `createDeepSpaceAI(env, provider, opts)` with AI SDK 7 (`generateObject` /
-  `streamText` from `ai`). There are no provider keys in this repo; the platform proxies every
-  call.
+- **AI:** `createDeepSpaceAI(env, provider)` with AI SDK 7: `generateText` with
+  `output: Output.object({ schema })` (`generateObject` is deprecated in v7), plus `streamText`.
+  Leaving out `authToken` makes the call owner-billed. There are no provider keys in this repo;
+  the platform proxies every call.
 
 ## DeepSpace rules (non-negotiable, even when moving fast)
 1. **Docs are the authority.** Look up any SDK API, binding, CLI command or integration that
@@ -52,13 +53,15 @@ on all day anyway, because they're cheap and save time:
 8. **Reference apps:** `reference/storynest` (image + narration) and `reference/threadhunt`
    (background jobs, one config file) are read-only. Learn the patterns from them.
 
-## Commands (confirm with `npx deepspace --help`; fix this list if it differs)
+## Commands (confirmed against CLI v0.34.0 on 2026-10-03)
 - **Who am I:** `npx deepspace auth whoami --json`
-- **Dev server:** `npx deepspace dev start`
+- **Dev server:** `npx deepspace dev start` (port 5173); stop it with `npx deepspace dev kill`
+- **State at a glance:** `npx deepspace status`
 - **Deploy:** `npx deepspace deploy`. Commit first: deploys ship the local working tree,
   uncommitted changes included.
 - **Logs:** `npx deepspace logs --follow --json`
-- **Releases and rollback:** `npx deepspace releases`
+- **Releases and rollback:** `npx deepspace releases`, `npx deepspace rollback`
+- **Credits and spend:** `npx deepspace app usage`; app storage: `npx deepspace app files list`
 - **Type-check:** `npm run type-check`
 - **Feature catalog:** `npx deepspace add --list`, `npx deepspace add --info <feature>`
 - **Integrations:** `npx deepspace integrations list`,

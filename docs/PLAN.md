@@ -70,7 +70,7 @@ POST /api/ask {question, ageBand, parentCardId?}
 
 job(cardId):
   1. safety      safety role -> decline? status=declined (grown-up message) and stop
-  2. write       writer role, generateObject -> {paragraph, keyIdea, followUps[2..3], imagePrompt}
+  2. write       writer role, generateText + Output.object -> {paragraph, keyIdea, followUps[2..3], imagePrompt}
                  -> save the paragraph + follow-ups now (progressive reveal), status=illustrating
   3. [P1] check  checker role (other provider) -> pass | fail(issues)
                  fail -> one rewrite -> re-check -> still failing: no badge, never public
@@ -86,7 +86,7 @@ job(cardId):
 | Role | Default |
 |---|---|
 | writer | `claude-sonnet-5` |
-| checker | a GPT-5.6 model (pick it in spike S2) |
+| checker | `gpt-6-sol` (S2: GPT-5.6 is legacy now) |
 | safety | `claude-haiku-4-5` |
 
 Changing a role's provider is a config change, which is the provider portability story for
@@ -150,7 +150,124 @@ the writeup.
 - **S5:** saving a binary to app storage and getting a URL that loads on the public Wall.
 
 ### Spike findings
-_(fill in)_
+Researched 2026-10-03 against deepspace 0.34.0 / ai 7.0.107 / zod 4. Paths are into
+`node_modules/deepspace/dist/` unless noted. No paid calls were made.
+
+**S1: picture + narration (integrations)**
+- Call from the worker with `tools.integration<T>(endpoint, body)` (worker.d.ts:3141). On success,
+  `result.data` is the body itself. In our scaffold, `createActionTools` is private in
+  `src/server/action-routes.ts:65`; pipeline-builder exports it (storynest:
+  `createActionTools(env, userId, env.APP_OWNER_JWT)`, storybookJob.ts:69).
+- **Picture:** `gemini/generate-image`, model `gemini-2.5-flash-image`, `aspectRatio: '4:3'`
+  (`imageSize` 1K only). Returns `{ base64Images: string[] }` (data URIs). If the content filter
+  blocks it, the array comes back empty. Treat that as an error and say "no text, no letters" in
+  the prompt. Fallback: `openai/generate-image` (`gpt-image-1-mini`, 1536x1024, quality low).
+- **Narration:** `elevenlabs/generate-speech`, `model_id: eleven_flash_v2_5`,
+  `output_format: mp3_44100_64`. Returns `{ audioUrl }` as a data URL. Voice
+  `JBFqnCBsd6RMkjVDRZzb` ("George") is unconfirmed; check it once with `elevenlabs/list-voices`
+  ($0.004). Fallback: `speech/text-to-speech` (OpenAI `tts-1`, about 10x cheaper).
+- **Cost:** the platform charges 1.3x the provider price.
+  - Paid plan: image about $0.05, TTS about $0.026 per card.
+  - **Free plan:** image about $0.155, TTS about $0.08 per card.
+  - The account is on the **free plan with 500 credits ($5), so about 20 cards in total.**
+  - Latency hasn't been measured. Typical figures: image 5-15 s, TTS 1-3 s.
+- No hosted URLs come back, so nothing expires. Everything must go to file storage, and a data
+  URI is never stored on the card. Wrap calls in per-stage retries (storynest
+  `withRetry.ts:24-46`: 3 tries, no retry on quota or forbidden errors).
+
+**S2: AI providers + structured output**
+- **Signature:** `createDeepSpaceAI(env, 'anthropic' | 'openai' | 'cerebras', { authToken? })`
+  returns `(modelId) => LanguageModel` (worker.d.ts:3422). **Owner-billed means no
+  `authToken`**: it falls back to `env.APP_OWNER_JWT`. (`billing: 'developer'` in
+  `src/integrations.ts` is only for the integrations proxy.) Owner-billed calls accept any caller,
+  so **our sign-in check and cap are the only gate**.
+- **AI SDK 7:** `generateObject` is deprecated. Use
+  `generateText({ model, instructions, prompt, output: Output.object({ schema }), maxOutputTokens })`
+  and read `.output`. This was type-checked against the installed types.
+- **Model ids** (catalog is `DEEPSPACE_AI_MODELS`, dated 2026-09-24; config.ts type-checks
+  against it):
+  - writer `claude-sonnet-5`
+  - safety `claude-haiku-4-5`
+  - checker **`gpt-6-sol`**: the `gpt-5.6-*` ids are now `legacy`, and `gpt-6-luna` is the cheap
+    fallback.
+- **Schema rules:**
+  - OpenAI runs strict json_schema, so use `.nullable()` and never `.optional()` or `.default()`
+    (strict mode rejects those with a 400).
+  - Anthropic turns `max` / `maxItems` into hints only. Use `.min(2)` and trim follow-ups to 3 in
+    code.
+  - If the first Anthropic call fails on structured output, set
+    `providerOptions.anthropic.structuredOutputMode: 'jsonTool'`.
+- **Parameters:**
+  - Sonnet 5 and GPT-6 ignore temperature. GPT-6 takes `reasoningEffort: 'low'`.
+  - Always set `maxOutputTokens`: Anthropic reserves credits against it (64k by default), and the
+    OpenAI limit includes reasoning tokens.
+- **Errors:** `NoObjectGeneratedError` and `NoOutputGeneratedError` for bad output,
+  `APICallError` for HTTP failures (`statusCode === 402` means out of credits). Log with
+  `deepSpaceAgentErrorSummary(err, { provider, modelId })`.
+
+**S4: background jobs**
+- **Already wired.** `AppJobRoom extends JobRoom` -> `runJob` in `src/jobs.ts` (worker.ts:69-83,
+  binding `JOB_ROOMS`).
+- **Start a job** from the ask route with
+  `enqueueJob(env.JOB_ROOMS, \`card:${cardId}\`, 'make-card', { cardId }, { maxAttempts: 1, enqueuedBy })`
+  (worker.d.ts:1729). The payload is just `{cardId}`.
+- **One job runs at a time per room, so use one room per card.** A shared room would queue cards
+  behind each other.
+- **Timing and failures:**
+  - Each run gets 15 minutes of wall time.
+  - A throw marks the *job* as failed but leaves the *card* untouched. Catch errors and write
+    `status: 'error'` yourself.
+  - Use `maxAttempts: 1` plus per-stage retries, because a whole-job retry pays for the LLM again.
+  - Guard on `status === 'queued'`, and skip any stage whose output is already saved.
+  - A crashed job only releases after about 16 minutes, so the UI treats a card still generating
+    after 3 minutes as stale (`isStale` in the contract).
+  - Pass `AbortSignal.any([ctx.signal, AbortSignal.timeout(STAGE_TIMEOUT_MS)])` to every call.
+- **`waitUntil` fallback ruled out:** the docs say it is killed 30 s after the response, and our
+  pipeline takes 30-60 s.
+- **Progress:** `buildCronContext(env, env.OWNER_USER_ID, \`app:${env.DEEPSPACE_APP_ID}\`)`, then
+  `.records.update('cards', id, partial)`.
+  - It writes as the app, merges the fields, and pushes the change live to every reader.
+  - Always pass the room id (it defaults to `'default'`).
+  - `ctx.progress` only updates the job row, not the card.
+- **Schema:**
+  - Set `ownerField: 'ownerId'` but **not** `userBound`, which would overwrite it with the writer
+    (the app).
+  - viewer and member get `read: 'own'`, with create, update and delete all false (threadhunt
+    `candidates-schema.ts:7,32-38`).
+- **Security hole in the scaffold:** `/ws/jobs/:roomId` (`src/server/realtime-routes.ts:169`) plus
+  `authorizeWrite` (worker.ts:72-75) let any member enqueue jobs directly, which bypasses the cap.
+  Make that path admin-only. `enqueueJob` goes through the internal path and is unaffected.
+
+**S5: file storage + public URLs**
+- No upload helper is exported. POST through `platformWorkerFetch` to
+  `https://internal/internal/files/upload?scope=app&key=cards/<cardId>/image.png`.
+  - Headers: `x-user-id`, plus `x-app-identity-token` and `x-app-id` when `APP_IDENTITY_TOKEN` is
+    set.
+  - Body: `{ data: base64, name, mimeType }`. It returns `{ success, key }`.
+  - Reference: worker.js:6862-6930. The full helper is in the S5 report.
+- **Store `/api/files/<returned key>?scope=app` on the card.** Tested live, signed out:
+  - plain GET -> 200 `audio/mpeg`
+  - `Range` -> 206 (iOS audio works)
+  - `If-None-Match` -> 304
+  - no token, no expiry
+  - Leaving out `?scope=app` returns 401; hand-building the key returns 403. Always use the
+    returned key.
+- **Keys:** use fixed keys per card (`cards/<id>/image.png`, `cards/<id>/narration.mp3`) so a
+  retry overwrites the same file. Ignore the response's `url` field (its origin is
+  `https://internal`).
+- **MIME types:** always pass one. SVG, HTML and JS are refused.
+- **Gotchas:**
+  - **App scope is listable while signed out** (`GET /api/files?scope=app`). Block the bare listing
+    in our proxy (`src/server/http-routes.ts:281`).
+  - **Storynest's pattern is broken for us:** it uses self scope, and its featured-story route
+    drops `Range`. Don't copy it.
+- **Limits:**
+  - About 18.75 MiB per base64 upload.
+  - 1 GiB of storage shared across the owner's apps; going over returns 409
+    `storage_quota_exceeded`.
+  - Nothing is cleaned up automatically; to delete a file, send `DELETE /internal/files/<key>`.
+- **Dev:** uploads need `APP_IDENTITY_TOKEN`, which may only exist after the first deploy (done).
+  Dev writes probably land in the live bucket.
 
 ### Decisions log
 | Decision | Why |
@@ -161,6 +278,19 @@ _(fill in)_
 | Mascot is a static SVG, never generated | Image models can't keep a character consistent |
 | Cards written only by the worker | Nobody can forge a "Checked" card onto the Wall |
 | Verification batched into Block 6 | Human call: speed today; still verified before submitting |
+| GitHub `hchitte2/kurious` is the app's source (latched on the first deploy, 2026-10-03) | Setup plan; DeepSpace source verbs now refuse |
+| `reference/` untracked and gitignored, plus `.env*` and `.DS_Store` | The reference apps were committed as dangling gitlinks; they stay local-only and read-only |
+| Checker is `gpt-6-sol`, not GPT-5.6 | S2: the `gpt-5.6-*` ids are now legacy in the SDK catalog |
+| `generateText` + `Output.object`, not `generateObject` | S2: `generateObject` is deprecated in AI SDK 7 |
+| Background job, one job room per card (`card:<id>`) | S4: `waitUntil` dies 30 s after the response; a shared room runs one job at a time |
+| Card records are owner-read-only; the Wall and shared cards go through worker routes returning `CardView` | S4: RBAC visibility is all-or-nothing per row, so a public row would expose `ownerId` and safety details |
+| `wall: 'private' \| 'public'` text column, set once by the worker at `ready` | S4: boolean columns are stored as 0/1 and filter unreliably; one flag carries all the Wall conditions |
+| Media in app-scope storage; the card stores `/api/files/<key>?scope=app` | S5: public, durable, supports Range (iOS audio); block the bare file listing in our proxy |
+| `ready` needs only the paragraph; `imageUrl` / `audioUrl` may stay null if media fails | No dead ends: the kid still gets the answer. The Wall requires a picture (via `wall`) |
+| Exact-match reuse copies into a new card (`reusedFromCardId`) instead of returning the old id | Owners can only read their own cards, and the trail has to stay the asker's |
+| Trail ancestors denormalized onto each card (`trail: TrailStop[]`) | The breadcrumb renders from one record, with no extra queries |
+| A card still generating 3 min after its last update counts as stale and gets Retry | S4: a crashed job only releases after about 16 min |
+| `GLOBAL_DAILY_CARD_CAP = 40` on top of 10 per user | S1: the free plan has $5 of credits, about 20 cards at free-tier prices |
 
 ---
 
