@@ -8,7 +8,7 @@ verification happens in Block 6.
 - [x] Merge any scaffold CLAUDE.md / AGENTS.md / settings with this kit (no CLAUDE.kit.md or
       settings.kit.json existed; AGENTS.md aligned to GitHub source)
 - [x] Confirm the CLI commands in CLAUDE.md (and that `npx deepspace app source` shows GitHub)
-- [ ] **Missing kit pieces (human):** no `.claude/settings.json` hooks (type-check on stop, secrets
+- [x] **Missing kit pieces (written by the agent):** no `.claude/settings.json` hooks (type-check on stop, secrets
       guard), no `.claude/agents/` (docs-researcher, pipeline-builder, ui-builder, code-reviewer,
       kid-content-reviewer), no `kid-explainer-style` / `misconception-cards` skills
 

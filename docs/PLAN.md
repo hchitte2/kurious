@@ -290,6 +290,7 @@ Researched 2026-10-03 against deepspace 0.34.0 / ai 7.0.107 / zod 4. Paths are i
 | Exact-match reuse copies into a new card (`reusedFromCardId`) instead of returning the old id | Owners can only read their own cards, and the trail has to stay the asker's |
 | Trail ancestors denormalized onto each card (`trail: TrailStop[]`) | The breadcrumb renders from one record, with no extra queries |
 | A card still generating 3 min after its last update counts as stale and gets Retry | S4: a crashed job only releases after about 16 min |
+| Narration is OpenAI `tts-1` (voice `fable`), not ElevenLabs | Human call: the cheapest option, about $0.008 per card vs $0.08 |
 | `GLOBAL_DAILY_CARD_CAP = 40` on top of 10 per user | S1: the free plan has $5 of credits, about 20 cards at free-tier prices |
 
 ---

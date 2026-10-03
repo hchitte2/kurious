@@ -96,14 +96,19 @@ If it doesn't, surface the choice to the human instead of guessing.
   API shapes) and `src/fixtures/cards.ts` (sample cards in every status) before any track
   starts. Tracks build against the contract, not against each other.
 - **File ownership.** Each track only edits its own files, which prevents collisions:
-  - `pipeline-builder`: `worker.ts`, `src/worker/**`, `src/ai/**`, `src/schemas.ts`,
+  - `pipeline-builder`: `worker.ts`, `src/worker/**`, `src/server/**`, `src/ai/**`,
+    `src/schemas.ts`, `src/schemas/**`, `src/jobs.ts`, `src/actions/**`, `src/cron.ts`,
     `src/config.ts`, `src/integrations.ts`, `wrangler.toml`
-  - `ui-builder`: `src/pages/**`, `src/components/**`, `src/styles/**`, `src/assets/**`,
-    `src/fixtures/**`
+  - `ui-builder`: `src/pages/**`, `src/components/**`, `src/hooks/**`, `src/lib/**`,
+    `src/styles*`, `src/themes*`, `src/assets/**`, `src/fixtures/**`, `src/nav.ts`,
+    `src/main.tsx`, `src/seo.ts`, `index.html`, `public/**`, UI deps in `package.json`
+  - `test-writer`: `tests/**`
   - main agent: `src/shared/**`, `docs/**`, `tasks/**`, merges, and contract changes
 - A track that needs a contract change asks the main agent; it never edits shared files
   itself.
 - Use `docs-researcher` for every DeepSpace question, so builder contexts stay clean.
+- Agent definitions live in `.claude/agents/`; hooks in `.claude/settings.json` +
+  `.claude/hooks/` (secrets guard on every tool call, type-check on stop).
 - One task per subagent invocation, with a clear "done when" line.
 
 ### 3. Self-improvement loop
