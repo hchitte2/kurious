@@ -58,14 +58,15 @@ bindings = [
 #
 # One managed knowledge base per app — upload documents, then search them with
 # `knowledge(env)` from deepspace/worker. The instance is never exposed on env;
-# the binding name is only the provisioning key:
-#
-# [[ai_search]]
-# binding = "KNOWLEDGE"
-# instance_name = "auto"
-#
+# the binding name is only the provisioning key.
 # Full reference, behavior, and pricing:
 #   https://docs.deep.space/bindings/knowledge
+#
+# Kurious: the misconception cards (src/knowledge/), seeded automatically by
+# the make-card job and searched before writing (PLAN P2 #1).
+[[ai_search]]
+binding = "KNOWLEDGE"
+instance_name = "auto"
 
 # --- DeepSpace detected secrets (names only; values live in `npx deepspace secrets`) ---
 #   (none declared)

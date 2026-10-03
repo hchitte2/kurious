@@ -120,6 +120,37 @@ export const NARRATION = {
   mimeType: 'audio/mpeg',
 } as const
 
+// ── Managed knowledge: misconception cards (PLAN P2 #1) ─────────────────────
+
+/**
+ * Bump to re-seed every misconception card into a fresh folder (only needed
+ * when Triggers change enough to matter for retrieval: the prompt text always
+ * comes from src/knowledge/misconceptions.ts, never from the index).
+ */
+export const KNOWLEDGE_VERSION = 1
+
+/**
+ * Retrieval knobs (src/knowledge/lookup.ts). Billed per search query
+ * ($0.825 / 1,000 semantic queries, about $0.0008 per card) plus one-time
+ * ingestion of ~26 short cards (well under 1 cent). Listing is not billed.
+ */
+export const KNOWLEDGE = {
+  folder: `misconceptions/v${KNOWLEDGE_VERSION}`,
+  /** 'semantic' so the score and matchThreshold are both vector similarity (0-1). */
+  mode: 'semantic',
+  /** Cards handed to the writer and the checker. */
+  topK: 3,
+  /** Chunks fetched before de-duplicating by card id. */
+  searchLimit: 8,
+  /** Relevance cutoff (0-1). Tune from the scores in the `knowledge` log line. */
+  minScore: 0.4,
+  searchTimeoutMs: 4_000,
+  /** Only the first card per isolate waits on this (one unbilled list call). */
+  seedTimeoutMs: 15_000,
+  /** After a failed seed, an isolate waits this long before trying again. */
+  seedRetryAfterMs: 10 * 60_000,
+} as const
+
 // ── Pipeline timing ─────────────────────────────────────────────────────────
 
 /** Per AI / integration call; combine with the job's ctx.signal (spike S4). */

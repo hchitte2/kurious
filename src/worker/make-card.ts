@@ -9,6 +9,8 @@
  * A stage whose output is already saved is skipped (a Retry keeps content).
  * Every AI / integration attempt "touches" the card first, so a healthy job
  * never looks stale (STALE_AFTER_MS) while a slow call is in flight.
+ * Before writing, misconception cards are retrieved from managed knowledge
+ * (P2) for the writer and the checker; that lookup fails open.
  */
 
 import { deepSpaceAgentErrorSummary } from 'deepspace/worker'
@@ -17,6 +19,8 @@ import { MODELS, type ModelRole } from '../config'
 import type { CardCheck, CardData, CardStatus } from '../shared/card'
 import { checkCard, classifySafety, rewriteCard, writeCard, type CardDraft, type WriteInput } from '../ai/card-ai.js'
 import { lengthIssues } from '../ai/prompts.js'
+import { findMisconceptions } from '../knowledge/lookup.js'
+import type { MisconceptionCard } from '../knowledge/misconceptions'
 import type { Env } from '../../worker.js'
 import { paintPicture, recordNarration } from './media.js'
 import { appTools, getCard, updateCard } from './records.js'
@@ -52,6 +56,22 @@ export function wallFor(data: CardData): CardData['wall'] {
 function logAiError(role: ModelRole, err: unknown): void {
   const { provider, modelId } = MODELS[role]
   console.error(`[make-card] ${role}: ${deepSpaceAgentErrorSummary(err, { provider, modelId })}`)
+}
+
+/**
+ * Misconception cards for this question (managed knowledge, P2). Fails open:
+ * an unavailable knowledge base means none, never a failed card. Logs exactly
+ * one `knowledge` line per card with the retrieved ids and scores.
+ */
+async function lookupMisconceptions(env: Env, cardId: string, question: string): Promise<MisconceptionCard[]> {
+  try {
+    const { hits, summary } = await findMisconceptions(env, question)
+    console.log(`[make-card] ${cardId} knowledge ${summary}`)
+    return hits.map((hit) => hit.card)
+  } catch (err) {
+    console.warn(`[make-card] ${cardId} knowledge unavailable: ${shortMessage(err)}`)
+    return []
+  }
 }
 
 export async function makeCard(env: Env, ctx: JobContext, cardId: string): Promise<MakeCardOutcome> {
@@ -95,7 +115,15 @@ export async function makeCard(env: Env, ctx: JobContext, cardId: string): Promi
       return 'declined'
     }
 
-    const input: WriteInput = { question: data.question, ageBand: data.ageBand, gentle: safety.label === 'gentle' }
+    // Only when something is left to write or check (a Retry past both skips it).
+    const misconceptions =
+      !data.paragraph || !data.check ? await lookupMisconceptions(env, cardId, data.question) : []
+    const input: WriteInput = {
+      question: data.question,
+      ageBand: data.ageBand,
+      gentle: safety.label === 'gentle',
+      misconceptions,
+    }
 
     // 2. Write. The paragraph + follow-ups land together (progressive reveal).
     stage = 'writing'
@@ -186,6 +214,7 @@ async function runCheck(
           keyIdea: data.keyIdea ?? '',
           followUps: data.followUps,
           imagePrompt: data.imagePrompt ?? '',
+          misconceptions: input.misconceptions,
         },
         signal,
       ),

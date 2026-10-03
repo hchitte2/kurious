@@ -35,6 +35,43 @@ export async function remainingToday(tools: ActionTools, userId: string): Promis
   return remaining(await countRows(tools, { userId, day: utcDay() }, DAILY_CARD_CAP + 1))
 }
 
+export interface UsageToday {
+  /** UTC day the counts are for, YYYY-MM-DD. */
+  day: string
+  /** When both caps reset: the next UTC midnight, ISO 8601. */
+  resetsAt: string
+  /** Paid cards this user has used today (reused cards are free and not counted). */
+  used: number
+  /** Paid cards this user can still ask for today, ignoring the global cap. */
+  remaining: number
+  limit: number
+  /** Paid cards left today across everyone. */
+  globalRemaining: number
+  globalLimit: number
+  /** Whether a new (paid) question would be accepted right now: both caps have room. */
+  canAskNow: boolean
+}
+
+/** Read-only snapshot of both caps for one user. Counts nothing. */
+export async function usageToday(tools: ActionTools, userId: string, now = Date.now()): Promise<UsageToday> {
+  const day = utcDay(now)
+  const [mine, everyone] = await Promise.all([
+    countRows(tools, { userId, day }, DAILY_CARD_CAP + 1),
+    countRows(tools, { day }, GLOBAL_DAILY_CARD_CAP + 1),
+  ])
+  const globalRemaining = Math.max(0, GLOBAL_DAILY_CARD_CAP - everyone)
+  return {
+    day,
+    resetsAt: `${utcDay(Date.parse(`${day}T00:00:00Z`) + 86_400_000)}T00:00:00.000Z`,
+    used: Math.min(mine, DAILY_CARD_CAP),
+    remaining: remaining(mine),
+    limit: DAILY_CARD_CAP,
+    globalRemaining,
+    globalLimit: GLOBAL_DAILY_CARD_CAP,
+    canAskNow: remaining(mine) > 0 && globalRemaining > 0,
+  }
+}
+
 /** Count one paid card against both caps, or refuse it (nothing is counted then). */
 export async function reserveCard(
   tools: ActionTools,

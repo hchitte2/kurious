@@ -20,7 +20,6 @@ import {
   YjsRoom,
 } from 'deepspace/worker'
 import type { DOBindings, DOManifest, Job, JobContext } from 'deepspace/worker'
-import { AI_CHATS_SCHEMA } from 'deepspace/schema'
 import { registerAgent } from './src/ai/agent.js'
 import { buildTools } from './src/ai/tools.js'
 import { tasks as cronTasks, runTask as runCronTask } from './src/cron.js'
@@ -148,12 +147,10 @@ registerActionRoutes(app, resolveAuth)
 // Kurious: /api/ask, /api/wall, /api/cards/:id(/retry). Before the proxies
 // and the static fallback, whose API guard 404s anything unmatched.
 registerCardRoutes(app)
-// The in-app assistant stores chat history in `ai-chats` / `ai-messages`,
-// which only the copilot overlay declares. When present, registerAgent enables
-// both that website AI and the user's local Codex/Claude/etc. assistant.
-if (schemas.some((schema) => schema.name === AI_CHATS_SCHEMA.name)) {
-  registerAgent(app, { tools: buildTools })
-}
+// Local agent tools only (`npx deepspace agent tools|invoke kurious`): free,
+// read-only card and usage lookups (src/ai/tools.ts). No website AI chat, so
+// no ai-chats schema. Before the platform proxy's `/_deepspace/*` route.
+registerAgent(app, { tools: buildTools, inApp: false })
 registerPlatformProxyRoutes(app)
 registerStaticRoutes(app)
 

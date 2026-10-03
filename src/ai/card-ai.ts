@@ -15,6 +15,7 @@ import { createDeepSpaceAI } from 'deepspace/worker'
 import { FOLLOW_UPS, MODELS, type ModelRole } from '../config'
 import { normalizeQuestion, SAFETY_LABELS, type AgeBand, type CardSafety } from '../shared/card'
 import type { Env } from '../../worker.js'
+import type { MisconceptionCard } from '../knowledge/misconceptions'
 import {
   checkerInstructions,
   checkerPrompt,
@@ -73,6 +74,8 @@ export interface WriteInput {
   question: string
   ageBand: AgeBand
   gentle: boolean
+  /** Retrieved from managed knowledge (P2): the writer avoids these, the checker hunts for them. */
+  misconceptions?: readonly MisconceptionCard[]
 }
 
 /** Trim everything; keep 2-3 distinct follow-ups that aren't the question itself. */
@@ -109,7 +112,7 @@ async function runWriter(env: Env, input: WriteInput, prompt: string, signal: Ab
 }
 
 export function writeCard(env: Env, input: WriteInput, signal: AbortSignal): Promise<CardDraft> {
-  return runWriter(env, input, writerPrompt(input.question), signal)
+  return runWriter(env, input, writerPrompt(input.question, input.misconceptions), signal)
 }
 
 /** The one rewrite after a failed check: the issues go in verbatim. */
@@ -120,7 +123,7 @@ export function rewriteCard(
   issues: string[],
   signal: AbortSignal,
 ): Promise<CardDraft> {
-  return runWriter(env, input, rewritePrompt(input.question, draft, issues), signal)
+  return runWriter(env, input, rewritePrompt(input.question, draft, issues, input.misconceptions), signal)
 }
 
 // ── Checker ─────────────────────────────────────────────────────────────────
@@ -144,13 +147,14 @@ export async function checkCard(
     keyIdea: string
     followUps: string[]
     imagePrompt: string
+    misconceptions?: readonly MisconceptionCard[]
   },
   signal: AbortSignal,
 ): Promise<CheckResult> {
   const { output } = await generateText({
     model: model(env, 'checker'),
     instructions: checkerInstructions(input.ageBand),
-    prompt: checkerPrompt(input.question, input),
+    prompt: checkerPrompt(input.question, input, input.misconceptions),
     output: Output.object({ schema: CheckSchema, name: 'check' }),
     maxOutputTokens: MODELS.checker.maxOutputTokens,
     maxRetries: 0,

@@ -293,6 +293,8 @@ Researched 2026-10-03 against deepspace 0.34.0 / ai 7.0.107 / zod 4. Paths are i
 | Narration is OpenAI `tts-1` (voice `fable`), not ElevenLabs | Human call: the cheapest option, about $0.008 per card vs $0.08 |
 | Length limits enforced in code with slack (+15% words, +4 words/sentence); they can trigger the one rewrite but never decide the badge. Only the checker's truth/age-fit verdict does | First live run: all 3 cards were true but failed the check on 1-2 extra words (14 vs 12 words/sentence, 56 vs 55 words), losing the badge, the Wall and free reuse |
 | Caps: 5 cards per user and 12 globally per UTC day | Measured about $0.20 per card on the free plan; 440 credits left after the first live run (about 22 cards). Raise both after topping up |
+| Managed knowledge for misconception retrieval (writer + checker), seeded automatically; no semantic (near-duplicate) reuse | Coverage of the DeepSpace primitives in CLAUDE.md. Near-duplicate questions can need different answers ("sky blue" vs "sky red at sunset"), so only exact-match reuse ships |
+| Local agent tools exposed (`inApp: false`), read-only and free: wall, card, my cards, usage | Lets a local assistant verify the deployed app (`deepspace agent tools/invoke`) without any paid path |
 
 ---
 

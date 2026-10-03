@@ -154,7 +154,7 @@ async function readJson(c: Ctx): Promise<unknown> {
 
 // ── Wall ────────────────────────────────────────────────────────────────────
 
-const WALL_DEFAULT_LIMIT = 12
+export const WALL_DEFAULT_LIMIT = 12
 const WALL_MAX_LIMIT = 30
 /** The record room filters by equality only, so the Wall pages in memory over this many newest rows. */
 const WALL_SCAN_LIMIT = 500
@@ -188,6 +188,35 @@ function parseLimit(raw: string | undefined): number {
 }
 
 const isPublicCard = (card: CardRecord) => card.data.wall === 'public' && card.data.status === 'ready'
+
+/**
+ * One page of the Wall, newest first, after `cursor`. Shared by GET /api/wall
+ * and the `wall_list` agent tool so both apply the same rules. Throws on a
+ * record-room failure.
+ */
+export async function readWallPage(env: Env, cursor: string | null, limit: number): Promise<WallPage> {
+  const rows = await queryCards(appTools(env), { wall: 'public', status: 'ready' }, WALL_SCAN_LIMIT)
+  // Reused copies repeat their source's content: keep them off the Wall.
+  const cards = rows.filter((card) => isPublicCard(card) && !card.data.reusedFromCardId).sort(newestFirst)
+  const after = cursor ? parseCursor(cursor) : null
+  const start = after ? cards.findIndex((card) => olderThan(card, after)) : 0
+  const from = start < 0 ? cards.length : start
+  const page = cards.slice(from, from + limit)
+  const more = from + limit < cards.length
+  return {
+    items: page.map(toPublicView),
+    nextCursor: more && page.length > 0 ? cursorOf(page[page.length - 1]) : null,
+  }
+}
+
+/**
+ * A shared card as signed-out visitors see it, or null unless it is public
+ * and ready. Shared by GET /api/cards/:id and the `card_get` agent tool.
+ */
+export async function readPublicCard(env: Env, cardId: string): Promise<CardView | null> {
+  const card = await getCard(appTools(env), cardId)
+  return card && isPublicCard(card) ? toPublicView(card) : null
+}
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
@@ -300,18 +329,7 @@ export function registerCardRoutes(app: Hono<AppContext>): void {
     const limit = parseLimit(c.req.query('limit'))
     const cursor = c.req.query('cursor') ?? null
     try {
-      const rows = await queryCards(appTools(c.env), { wall: 'public', status: 'ready' }, WALL_SCAN_LIMIT)
-      // Reused copies repeat their source's content: keep them off the Wall.
-      const cards = rows.filter((card) => isPublicCard(card) && !card.data.reusedFromCardId).sort(newestFirst)
-      const after = cursor ? parseCursor(cursor) : null
-      const start = after ? cards.findIndex((card) => olderThan(card, after)) : 0
-      const from = start < 0 ? cards.length : start
-      const page = cards.slice(from, from + limit)
-      const more = from + limit < cards.length
-      const body: WallPage = {
-        items: page.map(toPublicView),
-        nextCursor: more && page.length > 0 ? cursorOf(page[page.length - 1]) : null,
-      }
+      const body: WallPage = await readWallPage(c.env, cursor, limit)
       c.header('Cache-Control', 'public, max-age=15')
       return c.json(body)
     } catch (err) {
@@ -323,9 +341,9 @@ export function registerCardRoutes(app: Hono<AppContext>): void {
   app.get('/api/cards/:id', async (c) => {
     const notFound: PublicCardResponse = { ok: false, error: 'not_found' }
     try {
-      const card = await getCard(appTools(c.env), c.req.param('id'))
-      if (!card || !isPublicCard(card)) return c.json(notFound, 404)
-      const body: PublicCardResponse = { ok: true, card: toPublicView(card) }
+      const card = await readPublicCard(c.env, c.req.param('id'))
+      if (!card) return c.json(notFound, 404)
+      const body: PublicCardResponse = { ok: true, card }
       c.header('Cache-Control', 'public, max-age=60')
       return c.json(body)
     } catch (err) {

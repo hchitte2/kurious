@@ -1,22 +1,29 @@
 /**
- * One coordinator for the generated app's two assistant surfaces:
+ * Kurious exposes ONE assistant surface: the local assistant (the user's
+ * Codex, Claude, or similar client), reached through the DeepSpace CLI
+ * (`npx deepspace agent tools|invoke kurious`). The CLI only bridges the
+ * agent to these Worker routes; it does not authorize or host it.
  *
- * - the in-app assistant is the website AI chat UI;
- * - the local assistant is the user's Codex, Claude, or similar client.
- *
- * The CLI only bridges a local assistant to these Worker routes. It does not
- * authorize or host either assistant.
+ * Kurious has no website AI chat (no `ai-chats` schema), so the scaffold's
+ * in-app surface is not wired here. Its tools need the verified caller and
+ * the request's env (src/ai/tools.ts), which the SDK's tool factory signature
+ * does not carry, so the SDK routes are mounted per request with both bound.
  */
 
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { registerAgentToolRoutes, resolveAppMembership } from 'deepspace/worker'
 import type { AgentToolAccessResult, JwtClaims } from 'deepspace/worker'
-import type { buildTools } from './tools.js'
-import { registerAiChatRoutes } from './chat-routes.js'
-import { resolveAgentAuth, resolveAuth } from '../server/http-routes.js'
+import type { ToolSet } from 'ai'
+import type { ToolCaller, ToolExecutor } from './tools.js'
+import { resolveAgentAuth } from '../server/http-routes.js'
 import type { AppContext, Env } from '../../worker.js'
 
-type ToolFactory = typeof buildTools
+type ToolFactory = (executor: ToolExecutor, caller: ToolCaller) => ToolSet
+type ResolveAccess = (request: Request, env: Env) => Promise<AgentToolAccessResult>
+
+/** The SDK-owned local agent paths (discovery + invoke). */
+const AGENT_PATH = '/_deepspace/agent'
 
 export interface AgentAuthorizationContext {
   userId: string
@@ -26,10 +33,13 @@ export interface AgentAuthorizationContext {
 }
 
 export interface RegisterAgentOptions {
-  /** The existing app-owned tool factory from src/ai/tools.ts. */
+  /** The app-owned tool factory from src/ai/tools.ts. */
   tools: ToolFactory
-  /** Enable the website AI chat UI. Defaults to true. */
-  inApp?: boolean
+  /**
+   * The website AI chat. Kurious has none: only `false` is accepted, so
+   * turning it on means wiring src/ai/chat-routes.ts here first.
+   */
+  inApp?: false
   /** Enable the user's local Codex/Claude/etc. assistant. Defaults to true. */
   local?: boolean
   /**
@@ -39,8 +49,8 @@ export interface RegisterAgentOptions {
   authorize?: (context: AgentAuthorizationContext) => boolean | Promise<boolean>
 }
 
-function createAccessResolver(options: RegisterAgentOptions, resolveIdentity: typeof resolveAuth) {
-  return async (request: Request, env: Env): Promise<AgentToolAccessResult> => {
+function createAccessResolver(options: RegisterAgentOptions, resolveIdentity: typeof resolveAgentAuth): ResolveAccess {
+  return async (request, env) => {
     const auth = await resolveIdentity(request, env)
     if (!auth) return { ok: false, status: 401 }
 
@@ -71,17 +81,37 @@ function createAccessResolver(options: RegisterAgentOptions, resolveIdentity: ty
 }
 
 /**
- * Register generated app assistant routes with one authorization policy for
- * both the website AI and the local assistant. The CLI is only their bridge.
+ * The SDK's local agent routes for ONE request. The SDK calls `resolveAccess`
+ * and then the tool factory within the same request; binding the verified
+ * caller in this request's own closure keeps concurrent requests apart.
+ */
+function callerScopedToolRoutes(tools: ToolFactory, resolveAccess: ResolveAccess): Hono<AppContext> {
+  const routes = new Hono<AppContext>()
+  let caller: ToolCaller | null = null
+  registerAgentToolRoutes(routes, {
+    resolveAccess: async (request, env) => {
+      const access = await resolveAccess(request, env)
+      caller = access.ok ? { env, userId: access.auth.userId } : null
+      return access
+    },
+    buildTools: (executor) => {
+      // Unreachable: the SDK only builds tools after access succeeded. Fail closed.
+      if (!caller) throw new Error('agent tools requested before the caller was verified')
+      return tools(executor, caller)
+    },
+  })
+  return routes
+}
+
+/**
+ * Register the local assistant's tool routes. Call once in worker.ts, with
+ * the other API routes and before the platform proxy's `/_deepspace/*`.
  */
 export function registerAgent(app: Hono<AppContext>, options: RegisterAgentOptions): void {
-  if (options.inApp !== false) {
-    registerAiChatRoutes(app, createAccessResolver(options, resolveAuth), options.tools)
-  }
-  if (options.local !== false) {
-    registerAgentToolRoutes(app, {
-      buildTools: options.tools,
-      resolveAccess: createAccessResolver(options, resolveAgentAuth),
-    })
-  }
+  if (options.local === false) return
+  const resolveAccess = createAccessResolver(options, resolveAgentAuth)
+  const handle = (c: Context<AppContext>) =>
+    callerScopedToolRoutes(options.tools, resolveAccess).fetch(c.req.raw, c.env, c.executionCtx)
+  app.all(AGENT_PATH, handle)
+  app.all(`${AGENT_PATH}/*`, handle)
 }
