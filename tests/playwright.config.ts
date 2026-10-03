@@ -15,7 +15,10 @@ const BASE_URL = `http://localhost:${PORT}`
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.ts',
-  timeout: 30_000,
+  // Dev-server pages are lazy routes behind an auth boot; on a busy machine
+  // the first visit to a route can take well over the 5s expect default.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   retries: 0,
   use: {
     baseURL: BASE_URL,
@@ -30,7 +33,10 @@ export default defineConfig({
     // responses and fails setup with its own clear error at the timeout.
     url: `${BASE_URL}/api/auth/ok`,
     reuseExistingServer: false,
-    timeout: 60_000,
+    // A cold start (vite + ESLint checker + workerd) measured ~45s before
+    // /api/auth/ok answered, so 60s left no headroom when a second dev
+    // server is running alongside.
+    timeout: 180_000,
     stdout: 'pipe',
     stderr: 'pipe',
   },

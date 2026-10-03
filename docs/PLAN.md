@@ -291,7 +291,7 @@ Researched 2026-10-03 against deepspace 0.34.0 / ai 7.0.107 / zod 4. Paths are i
 | Trail ancestors denormalized onto each card (`trail: TrailStop[]`) | The breadcrumb renders from one record, with no extra queries |
 | A card still generating 3 min after its last update counts as stale and gets Retry | S4: a crashed job only releases after about 16 min |
 | Narration is OpenAI `tts-1` (voice `fable`), not ElevenLabs | Human call: the cheapest option, about $0.008 per card vs $0.08 |
-| Length limits enforced in code with slack (+15% words, +4 words/sentence); the checker judges truth and age fit only | First live run: all 3 cards were true but failed the check on 1-2 extra words (14 vs 12 words/sentence, 56 vs 55 words), losing the badge, the Wall and free reuse |
+| Length limits enforced in code with slack (+15% words, +4 words/sentence); they can trigger the one rewrite but never decide the badge. Only the checker's truth/age-fit verdict does | First live run: all 3 cards were true but failed the check on 1-2 extra words (14 vs 12 words/sentence, 56 vs 55 words), losing the badge, the Wall and free reuse |
 | Caps: 5 cards per user and 12 globally per UTC day | Measured about $0.20 per card on the free plan; 440 credits left after the first live run (about 22 cards). Raise both after topping up |
 
 ---

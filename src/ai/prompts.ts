@@ -24,7 +24,8 @@ const MISCONCEPTIONS = `- Seasons come from Earth being closer to the sun. (It's
 - Lightning never strikes the same place twice. (It often does.)
 - Camels store water in their humps. (Fat.)
 - Ostriches bury their heads in the sand. (Myth.)
-- Mixing paint and mixing light work the same way. (They don't.)`
+- Mixing paint and mixing light work the same way. (They don't.)
+- Earth tips toward and away from the sun during the year, or the tipped-away half is farther away. (The tilt points the same way all year; going around the sun changes which half gets steep sunlight and long days.)`
 
 const NEVER = `- Teleology or wishes as causes ("the plant wants sun", "the bird knows to fly south"): say what actually happens.
 - "Magic", "just because", or "nobody knows" when somebody does.
@@ -68,10 +69,10 @@ ${readerLine(ageBand)}
 
 The paragraph:
 1. Open with the answer. No preamble: never "Great question!" or "Have you ever wondered".
-2. One idea: every sentence serves the keyIdea.
+2. One idea: every sentence serves the keyIdea. If two causes are about equally big (seasons: slanted light and short days), name both.
 3. Mechanism over label: say what actually happens ("air bounces blue light around more than other colors", not just "because of Rayleigh scattering").${big ? ' You may name the real term once, explained in place.' : ' No technical terms.'}
-4. Exactly one concrete comparison to something the child has touched or seen (a spinning top, soda fizz, a slide). The comparison must match the mechanism, not just the vibe.
-5. Honest uncertainty: if scientists aren't sure, say so ("Scientists are still figuring this out. The best idea so far is..."). Never invent certainty.
+4. Exactly one concrete comparison to something the child has touched or seen (a spinning top, soda fizz, a slide). The comparison must match the mechanism, not just the vibe, and everything said about the comparison object must be true when a child tries it.
+5. Honest uncertainty: if scientists aren't sure, say so before or inside the first sentence that gives the idea ("Scientists think..."); a hedge only at the end does not count. Describe which part moves or vibrates only as precisely as you are sure of. Never invent certainty.
 6. Talk to the child ("you"): warm, plain, short sentences, words a kid says out loud.
 7. End on wonder or a nudge toward the follow-ups, never a moral or a quiz.
 8. One plain paragraph: no lists, headings, emojis or line breaks.
@@ -125,13 +126,14 @@ ${readerLine(ageBand)}
 Length is checked separately by code: never fail the paragraph for word or sentence counts.
 
 Fail the paragraph if ANY of these hold, and list each as one short, specific issue that quotes the problem words:
-1. A factual claim is false, or stated more certainly than science supports.
+1. A factual claim is false, or stated more certainly than science supports. A closing hedge does not excuse earlier sentences stated as fact.
 2. It contains a classic misconception, or a close cousin of one:
 ${MISCONCEPTIONS}
 3. The comparison implies a wrong mechanism.
 4. It uses jargon, or ideas too advanced for this listener, without explaining them.
 5. It doesn't actually answer the question asked.
 6. It is scary, preachy, or includes teleology ("the plant wants"), "magic" or "just because", brands, real living people, politics, religion stated as fact, or medical or safety advice.
+7. A follow-up states or presupposes something false or imprecise, repeats another follow-up, or can't be answered in one card; or the imagePrompt asks for text or numbers, is scary, or pictures a wrong mechanism.
 
 Leaving details out is fine; saying something false is not. Do not fail for style preferences.
 If none hold, the verdict is "pass" and issues is empty.
@@ -152,10 +154,15 @@ export function paragraphStats(paragraph: string): ParagraphStats {
   }
 }
 
-export function checkerPrompt(question: string, paragraph: string, keyIdea: string): string {
+export function checkerPrompt(
+  question: string,
+  card: { paragraph: string; keyIdea: string; followUps: string[]; imagePrompt: string },
+): string {
   return `<question>${question}</question>
-<keyIdea>${keyIdea}</keyIdea>
-<paragraph>${paragraph}</paragraph>`
+<keyIdea>${card.keyIdea}</keyIdea>
+<paragraph>${card.paragraph}</paragraph>
+<followUps>${card.followUps.join(' | ')}</followUps>
+<imagePrompt>${card.imagePrompt}</imagePrompt>`
 }
 
 /**

@@ -10,13 +10,17 @@ A Kurious card answers ONE "why?" with ONE paragraph a grown-up would be glad th
 
 ## The paragraph
 1. **Open with the answer**, not a preamble. No "Great question!", no "Have you ever wondered".
-2. **One idea.** The keyIdea is one sentence; every sentence in the paragraph serves it.
+2. **One idea.** The keyIdea is one sentence; every sentence in the paragraph serves it. If
+   two causes are about equally big (seasons: slanted light AND short days), name both.
 3. **Mechanism over label.** "Air bounces blue light around more than other colors" beats
    "because of Rayleigh scattering". Big kids (9-11) may get the real term, explained in place.
 4. **One concrete comparison** to something the kid has touched or seen (a spinning top, soda
-   fizz, a slide). The comparison must match the mechanism, not just the vibe.
-5. **Honest uncertainty.** If scientists aren't sure, say so: "Scientists are still figuring
-   this out. The best idea so far is...". Never invent certainty.
+   fizz, a slide). The comparison must match the mechanism, not just the vibe, and everything
+   said about the comparison object must be true when a child tries it (a flashlight spot is
+   not warm).
+5. **Honest uncertainty.** If scientists aren't sure, say so before or inside the first
+   sentence that gives the idea ("Scientists think..."); a hedge only at the end doesn't count.
+   Describe which part moves or vibrates only as precisely as you're sure of.
 6. **Second person, warm, plain.** Short sentences. Words a kid says out loud.
 7. **End on wonder or a link to the follow-ups**, not a moral or a quiz.
 8. **Length and sentence limits per age band** live in `src/config.ts` (`AGE_BAND_WRITING`):
@@ -27,7 +31,9 @@ A Kurious card answers ONE "why?" with ONE paragraph a grown-up would be glad th
   what actually happens).
 - "Magic", "just because", "nobody knows" when somebody does.
 - Classic misconceptions (the checker hunts for these):
-  - Seasons come from Earth being closer to the sun -> it's the **tilt**.
+  - Seasons come from Earth being closer to the sun -> it's the **tilt**. Also: Earth does not
+    rock toward and away during the year; the tilt points the same way all year. To a
+    4-year-old "leans away" sounds like "farther away": say "tips" and "the sun stays low".
   - The sky is blue because it reflects the ocean -> **scattering**.
   - Moon phases are Earth's shadow -> it's **how much of the sunlit half we see**.
   - Heavier things fall faster (ignoring air) -> they fall **together**.
@@ -68,7 +74,8 @@ A Kurious card answers ONE "why?" with ONE paragraph a grown-up would be glad th
 
 ## Checker rubric (different provider from the writer)
 Fail the paragraph if ANY of these hold; list each as one short issue:
-1. A factual claim is false or stated more certainly than science supports.
+1. A factual claim is false or stated more certainly than science supports (a closing hedge
+   doesn't excuse earlier sentences stated as fact).
 2. It contains a misconception from the list above (or a close cousin).
 3. The comparison implies a wrong mechanism.
 4. It uses jargon or ideas too advanced for the age band without explaining them. (Word and
@@ -76,4 +83,7 @@ Fail the paragraph if ANY of these hold; list each as one short issue:
    must not hinge on one extra word.)
 5. It doesn't actually answer the question asked.
 6. It's scary, preachy, or includes anything from "Never".
+7. A follow-up presupposes something false or imprecise ("29 days" for ~29.5), repeats another,
+   or can't be answered in one card; or the image prompt asks for text, is scary, or pictures a
+   wrong mechanism. (The checker sees the follow-ups and image prompt too.)
 A rewrite gets the issues verbatim and fixes only those.

@@ -99,10 +99,9 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
     }
     const code = c.req.query('code')
     const appOrigin = new URL(c.req.url).origin
-    // Land the signed-in user in the app, not on the static landing. `/` is a
-    // static page (no auth/realtime providers), so redirecting there after auth
-    // would strand the user; `/home` is the dynamic app boundary.
-    const appHome = `${appOrigin}/home`
+    // Land the signed-in user on Ask (`/`), which is inside the dynamic app
+    // boundary (src/pages/(app)/index.tsx). The scaffold's `/home` is gone.
+    const appHome = `${appOrigin}/`
 
     if (!code) return c.redirect(appHome)
 

@@ -137,13 +137,20 @@ export interface CheckResult {
 
 export async function checkCard(
   env: Env,
-  input: { question: string; ageBand: AgeBand; paragraph: string; keyIdea: string },
+  input: {
+    question: string
+    ageBand: AgeBand
+    paragraph: string
+    keyIdea: string
+    followUps: string[]
+    imagePrompt: string
+  },
   signal: AbortSignal,
 ): Promise<CheckResult> {
   const { output } = await generateText({
     model: model(env, 'checker'),
     instructions: checkerInstructions(input.ageBand),
-    prompt: checkerPrompt(input.question, input.paragraph, input.keyIdea),
+    prompt: checkerPrompt(input.question, input),
     output: Output.object({ schema: CheckSchema, name: 'check' }),
     maxOutputTokens: MODELS.checker.maxOutputTokens,
     maxRetries: 0,

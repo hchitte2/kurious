@@ -116,6 +116,10 @@ export async function makeCard(env: Env, ctx: JobContext, cardId: string): Promi
     if (!data.check) {
       if (data.status !== 'checking') await save({ status: 'checking' })
       const check = await runCheck(env, input, () => data, save, attempt)
+      console.log(
+        `[make-card] ${cardId} check ${check ? `${check.verdict} rewrites=${check.rewrites}` : 'unavailable'}` +
+          (check?.issues.length ? `: ${check.issues.join(' | ')}` : ''),
+      )
       if (check) await save({ check })
     }
 
@@ -175,29 +179,39 @@ async function runCheck(
     attempt('checker', (signal) =>
       checkCard(
         env,
-        { question: input.question, ageBand: input.ageBand, paragraph: data.paragraph ?? '', keyIdea: data.keyIdea ?? '' },
+        {
+          question: input.question,
+          ageBand: input.ageBand,
+          paragraph: data.paragraph ?? '',
+          keyIdea: data.keyIdea ?? '',
+          followUps: data.followUps,
+          imagePrompt: data.imagePrompt ?? '',
+        },
         signal,
       ),
     )
 
-  // The checker judges truth and age fit; code judges length (lengthIssues).
-  const verdictFor = async (data: CardData) => {
+  // The checker judges truth and age fit, and it alone decides the badge (the
+  // "Checked" tooltip promises exactly that). Length, enforced in code, can
+  // only ask for the one rewrite.
+  const review = async (data: CardData) => {
     const result = await check(data)
-    const issues = [
-      ...(result.verdict === 'fail' ? result.issues : []),
-      ...lengthIssues(data.paragraph ?? '', input.ageBand),
-    ]
-    return { verdict: issues.length === 0 ? ('pass' as const) : ('fail' as const), issues }
+    const truthIssues = result.verdict === 'fail' ? result.issues : []
+    return {
+      verdict: result.verdict,
+      truthIssues,
+      allIssues: [...truthIssues, ...lengthIssues(data.paragraph ?? '', input.ageBand)],
+    }
   }
 
   let first
   try {
-    first = await verdictFor(current())
+    first = await review(current())
   } catch (err) {
     logAiError('checker', err)
     return null
   }
-  if (first.verdict === 'pass') return { verdict: 'pass', issues: [], checkerModel, rewrites: 0 }
+  if (first.allIssues.length === 0) return { verdict: 'pass', issues: [], checkerModel, rewrites: 0 }
 
   const before = current()
   let rewritten: CardDraft
@@ -212,19 +226,19 @@ async function runCheck(
           followUps: before.followUps,
           imagePrompt: before.imagePrompt ?? '',
         },
-        first.issues,
+        first.allIssues,
         signal,
       ),
     )
   } catch (err) {
     logAiError('writer', err)
-    return { verdict: 'fail', issues: first.issues, checkerModel, rewrites: 0 }
+    return { verdict: first.verdict, issues: first.truthIssues, checkerModel, rewrites: 0 }
   }
   await save({ ...rewritten })
 
   try {
-    const second = await verdictFor(current())
-    return { verdict: second.verdict, issues: second.issues, checkerModel, rewrites: 1 }
+    const second = await review(current())
+    return { verdict: second.verdict, issues: second.truthIssues, checkerModel, rewrites: 1 }
   } catch (err) {
     logAiError('checker', err)
     return null
