@@ -42,14 +42,14 @@ export const MODELS = {
 // ── Usage limits ────────────────────────────────────────────────────────────
 
 /** New (paid) cards per signed-in user per UTC day. Reused cards are free. */
-export const DAILY_CARD_CAP = 10
+export const DAILY_CARD_CAP = 5
 
 /**
  * Backstop across ALL users per UTC day, so a busy day can't drain the owner's
- * credits. A card costs roughly $0.08 (paid plan) to $0.24 (free plan) in
- * picture + narration alone (spike S1).
+ * credits. Measured: about $0.20 per card on the free plan (all stages). Raise both
+ * caps after topping up credits (`npx deepspace app usage`).
  */
-export const GLOBAL_DAILY_CARD_CAP = 40
+export const GLOBAL_DAILY_CARD_CAP = 12
 
 // ── Writing rules per age band ──────────────────────────────────────────────
 

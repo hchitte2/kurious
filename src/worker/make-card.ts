@@ -16,6 +16,7 @@ import type { JobContext } from 'deepspace/worker'
 import { MODELS, type ModelRole } from '../config'
 import type { CardCheck, CardData, CardStatus } from '../shared/card'
 import { checkCard, classifySafety, rewriteCard, writeCard, type CardDraft, type WriteInput } from '../ai/card-ai.js'
+import { lengthIssues } from '../ai/prompts.js'
 import type { Env } from '../../worker.js'
 import { paintPicture, recordNarration } from './media.js'
 import { appTools, getCard, updateCard } from './records.js'
@@ -55,7 +56,8 @@ function logAiError(role: ModelRole, err: unknown): void {
 
 export async function makeCard(env: Env, ctx: JobContext, cardId: string): Promise<MakeCardOutcome> {
   const tools = appTools(env)
-  const card = await getCard(tools, cardId)
+  // One retry on a transient read failure, so a blip doesn't leave the card queued until stale.
+  const card = await getCard(tools, cardId).catch(() => getCard(tools, cardId))
   if (!card) {
     console.warn(`[make-card] ${cardId}: no such card`)
     return 'skipped'
@@ -178,9 +180,19 @@ async function runCheck(
       ),
     )
 
+  // The checker judges truth and age fit; code judges length (lengthIssues).
+  const verdictFor = async (data: CardData) => {
+    const result = await check(data)
+    const issues = [
+      ...(result.verdict === 'fail' ? result.issues : []),
+      ...lengthIssues(data.paragraph ?? '', input.ageBand),
+    ]
+    return { verdict: issues.length === 0 ? ('pass' as const) : ('fail' as const), issues }
+  }
+
   let first
   try {
-    first = await check(current())
+    first = await verdictFor(current())
   } catch (err) {
     logAiError('checker', err)
     return null
@@ -211,7 +223,7 @@ async function runCheck(
   await save({ ...rewritten })
 
   try {
-    const second = await check(current())
+    const second = await verdictFor(current())
     return { verdict: second.verdict, issues: second.issues, checkerModel, rewrites: 1 }
   } catch (err) {
     logAiError('checker', err)

@@ -33,7 +33,7 @@ import { type CardSource, useCard } from '../../../hooks/useCard'
 import { useFixtureMode } from '../../../hooks/fixtureMode'
 import { useNow } from '../../../hooks/useNow'
 import { useRetry } from '../../../hooks/useRetry'
-import { type AskRequest, type CardView, cardStage, isGenerating, isStale } from '../../../shared/card'
+import { type AskRequest, type CardView, STALE_AFTER_MS, cardStage, isGenerating, isStale } from '../../../shared/card'
 
 export default function CardPage() {
   const { id = '' } = useParams()
@@ -101,7 +101,13 @@ function CardScreen({ card, source }: { card: CardView; source: CardSource }) {
 
   const generating = isGenerating(card.status)
   const now = useNow(15_000, generating)
-  const stale = isStale(card, now)
+  // Stale needs no change seen by THIS device for the stale window (immune to a
+  // wrong device clock), or a server gap so large no clock skew explains it.
+  const lastSeenChange = useLastSeenChange(card.updatedAt)
+  const stale =
+    generating &&
+    ((now - lastSeenChange > STALE_AFTER_MS && isStale(card, now)) ||
+      isStale(card, now - CLOCK_SKEW_ALLOWANCE_MS))
   const mode: Mode =
     card.status === 'declined' ? 'declined' : card.status === 'error' || stale ? 'error' : generating ? 'generating' : 'ready'
   const stage = cardStage(card)
@@ -123,7 +129,13 @@ function CardScreen({ card, source }: { card: CardView; source: CardSource }) {
     else if (result.code === 'unauthenticated') setSheetOpen(true)
   }
 
-  const askFollowUp = (question: string) => void startAsk({ question, ageBand: card.ageBand, parentCardId: card.id })
+  // Only your own cards can be a trail's parent; on someone else's Wall card a chip starts a fresh trail.
+  const askFollowUp = (question: string) =>
+    void startAsk(
+      source === 'owner' || source === 'fixture'
+        ? { question, ageBand: card.ageBand, parentCardId: card.id }
+        : { question, ageBand: card.ageBand },
+    )
   const askFresh = (question: string) => void startAsk({ question, ageBand })
 
   const onRetry = async () => {
@@ -293,4 +305,14 @@ function CardLoading() {
       </div>
     </div>
   )
+}
+
+/** A wrong device clock up to this far ahead can't make a healthy card look stale. */
+const CLOCK_SKEW_ALLOWANCE_MS = 10 * 60_000
+
+/** Local time (this device's clock) when `updatedAt` last changed while we watched. */
+function useLastSeenChange(updatedAt: string): number {
+  const [seen, setSeen] = useState(() => ({ updatedAt, at: Date.now() }))
+  if (seen.updatedAt !== updatedAt) setSeen({ updatedAt, at: Date.now() })
+  return seen.updatedAt === updatedAt ? seen.at : Date.now()
 }

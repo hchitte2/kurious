@@ -28,6 +28,7 @@ import {
   WALL_ROUTE,
   type AgeBand,
   type AskErrorCode,
+  type CardView,
   type AskResponse,
   type CardData,
   type PublicCardResponse,
@@ -113,10 +114,20 @@ async function findReusable(
   )
 }
 
+/**
+ * What signed-out visitors see. The trail is dropped: earlier stops can be
+ * private cards whose questions hold personal details (names, schools).
+ */
+function toPublicView(card: CardRecord): CardView {
+  return { ...toCardView(card), trail: [] }
+}
+
 function reusedCopy(source: CardRecord, userId: string, input: AskInput, lineage: Lineage): CardData {
   const s = source.data
   return {
-    ...newCardData({ ownerId: userId, question: input.question, ageBand: input.ageBand, ...lineage }),
+    // The source's question, not the asker's raw text: only the source's wording
+    // was safety-checked, and a public copy shows it on its share link.
+    ...newCardData({ ownerId: userId, question: s.question, ageBand: input.ageBand, ...lineage }),
     status: 'ready',
     paragraph: s.paragraph,
     keyIdea: s.keyIdea,
@@ -298,7 +309,7 @@ export function registerCardRoutes(app: Hono<AppContext>): void {
       const page = cards.slice(from, from + limit)
       const more = from + limit < cards.length
       const body: WallPage = {
-        items: page.map(toCardView),
+        items: page.map(toPublicView),
         nextCursor: more && page.length > 0 ? cursorOf(page[page.length - 1]) : null,
       }
       c.header('Cache-Control', 'public, max-age=15')
@@ -314,7 +325,7 @@ export function registerCardRoutes(app: Hono<AppContext>): void {
     try {
       const card = await getCard(appTools(c.env), c.req.param('id'))
       if (!card || !isPublicCard(card)) return c.json(notFound, 404)
-      const body: PublicCardResponse = { ok: true, card: toCardView(card) }
+      const body: PublicCardResponse = { ok: true, card: toPublicView(card) }
       c.header('Cache-Control', 'public, max-age=60')
       return c.json(body)
     } catch (err) {

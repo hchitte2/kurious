@@ -122,14 +122,14 @@ export function checkerInstructions(ageBand: AgeBand): string {
   return `You are the independent checker for Kurious, an app that answers a child's "why?" question with one short paragraph read aloud. Another model wrote the paragraph. Catch anything false, misleading or unfit for the listener before a child hears it.
 
 ${readerLine(ageBand)}
-The word counts in <stats> were measured for you; trust them.
+Length is checked separately by code: never fail the paragraph for word or sentence counts.
 
 Fail the paragraph if ANY of these hold, and list each as one short, specific issue that quotes the problem words:
 1. A factual claim is false, or stated more certainly than science supports.
 2. It contains a classic misconception, or a close cousin of one:
 ${MISCONCEPTIONS}
 3. The comparison implies a wrong mechanism.
-4. It is outside the word or sentence limits, or uses jargon it does not explain.
+4. It uses jargon, or ideas too advanced for this listener, without explaining them.
 5. It doesn't actually answer the question asked.
 6. It is scary, preachy, or includes teleology ("the plant wants"), "magic" or "just because", brands, real living people, politics, religion stated as fact, or medical or safety advice.
 
@@ -153,9 +153,27 @@ export function paragraphStats(paragraph: string): ParagraphStats {
 }
 
 export function checkerPrompt(question: string, paragraph: string, keyIdea: string): string {
-  const stats = paragraphStats(paragraph)
   return `<question>${question}</question>
 <keyIdea>${keyIdea}</keyIdea>
-<paragraph>${paragraph}</paragraph>
-<stats>words: ${stats.words}; longest sentence: ${stats.longestSentenceWords} words</stats>`
+<paragraph>${paragraph}</paragraph>`
+}
+
+/**
+ * Length is enforced here, in code, with some slack: a sentence or two over
+ * the target is fine read aloud. Only a real overshoot becomes an issue (and
+ * so triggers the one rewrite). The checker judges truth and age fit only.
+ */
+export function lengthIssues(paragraph: string, ageBand: AgeBand): string[] {
+  const w = AGE_BAND_WRITING[ageBand]
+  const stats = paragraphStats(paragraph)
+  const issues: string[] = []
+  if (stats.words > Math.round(w.maxWords * 1.15))
+    issues.push(`The paragraph is ${stats.words} words; keep it to at most ${w.maxWords}.`)
+  if (stats.words < Math.round(w.minWords * 0.75))
+    issues.push(`The paragraph is only ${stats.words} words; give it at least ${w.minWords}.`)
+  if (stats.longestSentenceWords > w.maxWordsPerSentence + 4)
+    issues.push(
+      `The longest sentence is ${stats.longestSentenceWords} words; keep every sentence to at most ${w.maxWordsPerSentence}.`,
+    )
+  return issues
 }

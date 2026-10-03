@@ -71,7 +71,9 @@ Fail the paragraph if ANY of these hold; list each as one short issue:
 1. A factual claim is false or stated more certainly than science supports.
 2. It contains a misconception from the list above (or a close cousin).
 3. The comparison implies a wrong mechanism.
-4. It's outside the age band's word/sentence limits or uses unexplained jargon.
+4. It uses jargon or ideas too advanced for the age band without explaining them. (Word and
+   sentence counts are enforced in code with some slack, never by the checker: a truth badge
+   must not hinge on one extra word.)
 5. It doesn't actually answer the question asked.
 6. It's scary, preachy, or includes anything from "Never".
 A rewrite gets the issues verbatim and fixes only those.

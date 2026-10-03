@@ -243,7 +243,10 @@ export function registerAuthAndIntegrationRoutes(app: Hono<AppContext>): void {
       return c.json({ error: auth ? 'forbidden' : 'unauthorized' }, auth ? 403 : 401)
     }
 
-    const target = `/api/integrations/${integrationName}/${c.req.param('endpoint')}`
+    const endpoint = c.req.param('endpoint')
+    // A decoded `/` or `..` would let a caller reach a different integration.
+    if (/[/\\]|\.\./.test(endpoint)) return c.json({ error: 'invalid endpoint' }, 400)
+    const target = `/api/integrations/${integrationName}/${endpoint}`
     const headers: Record<string, string> = {
       'Content-Type': c.req.header('Content-Type') ?? 'application/json',
     }
