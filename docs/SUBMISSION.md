@@ -38,9 +38,15 @@ pass every check land on a public Wonder Wall.
 ## The main tradeoff
 **Correctness over speed.** A second-provider check (plus at most one rewrite) adds seconds to
 every card, because a 5-year-old can't spot a wrong answer. Cards that fail the check still reach
-the child who asked, but without the badge and never on the public Wall. One lesson from the
-first live run: the checker was failing true cards over a single extra word, so length moved into
-code (with slack) and the checker now judges truth and age fit only.
+the child who asked, but without the badge and never on the public Wall. It pays off: on
+production, GPT-6 caught Claude's moon-phases card suggesting a "walk around the lamp holding a
+ball" demo (wrong: you stand still and turn) in both the paragraph and the picture prompt, so
+that card got no badge and stayed off the Wall. One lesson from the first live run: the checker
+was failing true cards over a single extra word, so length moved into code (it can trigger the
+one rewrite) and only the truth verdict decides the badge.
+
+Measured: a new card is ready in about 20-35 s (paragraph in a few seconds, picture and
+narration after) and costs about $0.20 of credits; a reused card is instant and free.
 
 ## What the agent did
 Claude Code ran the whole build from a one-day plan with parallel subagents and a

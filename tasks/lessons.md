@@ -15,3 +15,9 @@ These override defaults in CLAUDE.md. Keep each rule to a line or two.
    calls. (source: human)
 5. **UI/UX is the top quality bar.** Follow docs/DESIGN.md; when unsure, choose the more
    playful, simpler, bigger option. (source: human)
+6. **Take decisions to completion; don't stop for the human.** Pick the sensible option, act,
+   log it in the PLAN decisions log, report after. Hard rails (secrets, undeploy/transfer)
+   still hold. (source: human)
+7. **`deploy_request_failed` ("fetch failed") with no action is transient on this platform.**
+   Nothing lands; retry the deploy (it has cleared within 1-3 retries every time). (source:
+   observed 3x today)
