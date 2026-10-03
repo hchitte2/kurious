@@ -144,7 +144,8 @@ export const KNOWLEDGE = {
   searchLimit: 8,
   /** Relevance cutoff (0-1). Tune from the scores in the `knowledge` log line. */
   minScore: 0.4,
-  searchTimeoutMs: 4_000,
+  /** Runs in parallel with the safety gate; 4 s timed out on the first live cards. */
+  searchTimeoutMs: 12_000,
   /** Only the first card per isolate waits on this (one unbilled list call). */
   seedTimeoutMs: 15_000,
   /** After a failed seed, an isolate waits this long before trying again. */

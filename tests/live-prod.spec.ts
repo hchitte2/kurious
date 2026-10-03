@@ -55,7 +55,8 @@ async function waitForReady(page: Page, label: string) {
 
 test('live prod: a card per age band, then free reuse', async ({ users }) => {
   test.setTimeout(900_000)
-  const [{ page }] = await users(1)
+  // LIVE_USER="<test account name>" picks a specific account (each has its own daily cap).
+  const [{ page }] = process.env.LIVE_USER ? await users([process.env.LIVE_USER]) : await users(1)
   for (const [i, card] of CARDS.entries()) {
     await ask(page, card.question, card.ages)
     await waitForReady(page, `${card.ages}`)

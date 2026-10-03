@@ -99,6 +99,12 @@ export async function makeCard(env: Env, ctx: JobContext, cardId: string): Promi
 
   let stage: Stage = 'safety'
   try {
+    // The misconception lookup only needs the question, so it runs alongside the
+    // safety gate. It never rejects (fails open to []), so leaving it unawaited
+    // on a decline is safe. Skipped when a Retry is past both write and check.
+    const misconceptionsLookup =
+      !data.paragraph || !data.check ? lookupMisconceptions(env, cardId, data.question) : Promise.resolve([])
+
     // 1. Safety gate.
     let safety = data.safety
     if (!safety) {
@@ -115,9 +121,7 @@ export async function makeCard(env: Env, ctx: JobContext, cardId: string): Promi
       return 'declined'
     }
 
-    // Only when something is left to write or check (a Retry past both skips it).
-    const misconceptions =
-      !data.paragraph || !data.check ? await lookupMisconceptions(env, cardId, data.question) : []
+    const misconceptions = await misconceptionsLookup
     const input: WriteInput = {
       question: data.question,
       ageBand: data.ageBand,

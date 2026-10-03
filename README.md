@@ -12,7 +12,8 @@ Built in one day on the [DeepSpace SDK](https://docs.deep.space) (Cloudflare Wor
 ## How a card is made
 ```
 POST /api/ask  ->  sign-in + daily caps  ->  exact-match reuse?  ->  card {queued}  ->  background job
-job:  safety (Claude Haiku)  ->  write (Claude Sonnet)  ->  check (GPT-6, one rewrite if needed)
+job:  safety (Claude Haiku)  ->  misconceptions (managed knowledge)  ->  write (Claude Sonnet)
+      ->  check (GPT-6, one rewrite if needed)
       ->  picture (Gemini image) + narration (OpenAI TTS) in parallel  ->  app file storage  ->  ready
 ```
 Each stage writes the card record, and the page updates live: the paragraph appears as soon as
@@ -26,6 +27,8 @@ it's written, the picture paints in, and the play button wakes up when the narra
 | `worker.ts`, `src/server/`, `src/ai/`, `src/jobs.ts` | Worker: routes, the card job, AI stages |
 | `src/schemas/` | Collections and RBAC (cards are written only by the worker) |
 | `src/pages/`, `src/components/`, `src/hooks/` | The UI: Ask, Card, Wonder Wall, My questions |
+| `src/knowledge/` | 26 misconception cards, seeded into managed knowledge and retrieved per card |
+| `src/ai/tools.ts` | Local agent tools (`npx deepspace agent tools kurious`) |
 | `src/fixtures/cards.ts` | A sample card in every state (add `?fixtures` to any page URL) |
 | `docs/` | Plan, design, verification log, submission note |
 

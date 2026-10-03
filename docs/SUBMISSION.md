@@ -23,8 +23,15 @@ pass every check land on a public Wonder Wall.
   owner-billed.
 - **File storage:** pictures and narration go to app-scope storage; the card stores a same-origin
   URL that loads signed-out and supports Range requests (iOS audio).
-- **Testing:** `deepspace/testing` test accounts drive Playwright smoke tests and an opt-in paid
-  live test, locally and against production.
+- **Managed knowledge:** 26 misconception cards (seasons, moon phases, "bats are blind", ...)
+  live in the app's knowledge base, seeded automatically. Before writing, the job retrieves the
+  closest ones and gives them to the writer (avoid these) and the checker (hunt for these). It
+  fails open, so a knowledge outage never blocks a card.
+- **Local agent tools:** `npx deepspace agent tools kurious` exposes four free, read-only tools
+  (`wall_list`, `card_get`, `my_cards`, `usage_today`) so a local assistant can inspect the live
+  app; used for verification. No tool can trigger a paid card.
+- **Testing:** `deepspace/testing` test accounts drive 33 Playwright smoke/API tests and opt-in
+  paid live tests, locally and against production.
 
 ## What I left out, and why
 | Left out | Why |
@@ -33,7 +40,8 @@ pass every check land on a public Wonder Wall.
 | Payments | An evaluation build: owner-billed with per-user and global daily caps instead. |
 | Kid accounts | Grown-ups own the account; no kid personal data is collected. |
 | Web search | Unvetted web text is a worse grounding source for a 5-year-old than a careful writer plus an independent checker. |
-| Misconception cards in managed knowledge, constellation map, voice input (P2) | Time: the misconception list is built into the writer and checker prompts instead. |
+| Semantic (near-duplicate) reuse | Near-duplicate questions can need different answers ("why is the sky blue" vs "why is the sky red at sunset"); only exact-match reuse ships. |
+| Constellation map of trails, voice input (P2) | Time. |
 
 ## The main tradeoff
 **Correctness over speed.** A second-provider check (plus at most one rewrite) adds seconds to
@@ -64,6 +72,6 @@ See `docs/VERIFICATION.md` for the log and `docs/PLAN.md` for decisions.
 
 ## What I'd do next
 - Top up credits and raise the daily caps (5 per user, 12 global) in `src/config.ts`.
-- Misconception cards in managed knowledge with retrieval for the writer and checker.
+- Tune the knowledge relevance cutoff (`minScore` in `src/config.ts`) from logged scores.
 - Return a user's existing copy on repeat reuse instead of creating a new record each time.
 - A server-side retry-in-flight marker, so two simultaneous Retries can't both run.
