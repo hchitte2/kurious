@@ -21,8 +21,9 @@ pass every check land on a public Wonder Wall.
 - **Auth + records + real-time sync:** grown-ups sign in; each card is a record the worker writes
   stage by stage, and the card page subscribes to it, so the paragraph appears the moment it's
   written, the picture paints in, and the play button wakes up when the narration lands.
-- **RBAC:** `cards` and `usage` are read-own / no client writes. Only the worker writes cards, so
-  nobody can forge a "Checked" card onto the Wall.
+- **RBAC:** clients can only read their own `cards` and can never write them; `usage` (the daily
+  caps) is server-only. Only the worker writes cards, so nobody can forge a "Checked" card onto
+  the Wall.
 - **Background jobs:** one job per card, in its own job room (a shared room runs one job at a
   time). It survives the tab closing; every stage writes the record.
 - **AI with two providers:** writer = Claude Sonnet 5, safety = Claude Haiku 4.5, checker =
@@ -38,8 +39,8 @@ pass every check land on a public Wonder Wall.
 - **Local agent tools:** `npx deepspace agent tools kurious` exposes four free, read-only tools
   (`wall_list`, `card_get`, `my_cards`, `usage_today`) so a local assistant can inspect the live
   app; used for verification. No tool can trigger a paid card.
-- **Testing:** `deepspace/testing` test accounts drive 33 Playwright smoke/API tests and opt-in
-  paid live tests, locally and against production.
+- **Testing:** `deepspace/testing` test accounts drive 33 Playwright smoke/API tests (plus 14 unit
+  tests) and opt-in paid live tests, locally and against production.
 
 ## What I left out, and why
 | Left out | Why |
@@ -70,7 +71,9 @@ contract-first split (shared `src/shared/card.ts` + fixtures before any track st
 registration, the first deploy (claiming GitHub as source of truth), four research spikes
 (image/TTS, providers + structured output, background jobs, file storage), the worker pipeline,
 every screen, a code review (one blocker found and fixed: a private parent's question leaking
-through a public card's trail), smoke tests, and live end-to-end runs on dev and production.
+through a public card's trail), a kid-content review of real cards (which tightened the writer
+and checker prompts), smoke tests, and live end-to-end runs on dev and production. After I asked
+whether every DeepSpace primitive was in use, it added managed knowledge and local agent tools.
 See `docs/VERIFICATION.md` for the log and `docs/PLAN.md` for decisions.
 
 ## What I verified or changed myself
@@ -78,15 +81,20 @@ See `docs/VERIFICATION.md` for the log and `docs/PLAN.md` for decisions.
   asked the agent to write the missing kit (hooks, subagents, kid-content skills).
 - Ran the critical-path checklist on the live app (laptop + iPhone): signed-out browsing and
   sign-in gate, instant free reuse of "Why is it cold in winter?" (tilt, Checked), a new card
-  building live, follow-up trails, a gentle + personal question kept off the Wall, audio and
-  layout on a phone.
+  building live, follow-up trails, a gentle + personal question kept off the Wall, an unsafe
+  question ("why dows mu tummy hurt every day?", typos and all) getting the grown-up redirect,
+  audio and layout on a phone.
+- Asked whether the app used every DeepSpace primitive in the plan; it didn't yet, so managed
+  knowledge (misconception retrieval) and local agent tools were added and verified live.
 - Found two real bugs the agent's tests missed, both fixed the same day:
   - A hard follow-up ("How do scientists predict when a volcano will erupt?") always failed:
     the writer model spent its whole token budget thinking (1199 of 1200 tokens).
   - On my phone the app showed system fonts: the font files 404'd in production builds only.
 
 ## What I'd do next
-- Top up credits and raise the daily caps (5 per user, 12 global) in `src/config.ts`.
+- Top up credits and raise the daily caps (5 per user, 8 app-wide) in `src/config.ts`.
+- A friendly "Kuri is resting" message when the owner's credits run out (today that shows the
+  generic error screen).
 - Tune the knowledge relevance cutoff (`minScore` in `src/config.ts`) from logged scores.
 - Return a user's existing copy on repeat reuse instead of creating a new record each time.
 - A server-side retry-in-flight marker, so two simultaneous Retries can't both run.
