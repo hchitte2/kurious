@@ -99,7 +99,7 @@ function tidyDraft(draft: z.infer<typeof DraftSchema>, question: string): CardDr
 }
 
 async function runWriter(env: Env, input: WriteInput, prompt: string, signal: AbortSignal): Promise<CardDraft> {
-  const { output } = await generateText({
+  const result = await generateText({
     model: model(env, 'writer'),
     instructions: writerInstructions(input.ageBand, input.gentle),
     prompt,
@@ -108,7 +108,15 @@ async function runWriter(env: Env, input: WriteInput, prompt: string, signal: Ab
     maxRetries: 0,
     abortSignal: signal,
   })
-  return tidyDraft(output, input.question)
+  // Diagnostics: the SDK leaves `output` empty when the last step didn't finish
+  // with "stop" and produced no text. Say why, instead of a bare NoOutput error.
+  if (result.finishReason !== 'stop' && result.text.length === 0) {
+    throw new Error(
+      `writer produced no text: finishReason=${result.finishReason} usage=${JSON.stringify(result.usage)} ` +
+        `reasoningChars=${result.reasoningText?.length ?? 0} warnings=${JSON.stringify(result.warnings ?? [])}`,
+    )
+  }
+  return tidyDraft(result.output, input.question)
 }
 
 export function writeCard(env: Env, input: WriteInput, signal: AbortSignal): Promise<CardDraft> {
