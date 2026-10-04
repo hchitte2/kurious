@@ -24,3 +24,6 @@ These override defaults in CLAUDE.md. Keep each rule to a line or two.
 8. **Thinking models spend maxOutputTokens on thinking.** Set an explicit thinking/effort
    level and leave headroom; log finishReason + usage when output is empty. (source: prod bug
    found by the human, 2026-10-04)
+9. **Verify the production build, not just dev, for assets.** Dev resolved @fontsource
+   @imports that the built CSS broke; check fonts/images return 200 on the deployed URL.
+   (source: the human, on an iPhone, 2026-10-04)
