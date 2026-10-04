@@ -21,3 +21,6 @@ These override defaults in CLAUDE.md. Keep each rule to a line or two.
 7. **`deploy_request_failed` ("fetch failed") with no action is transient on this platform.**
    Nothing lands; retry the deploy (it has cleared within 1-3 retries every time). (source:
    observed 3x today)
+8. **Thinking models spend maxOutputTokens on thinking.** Set an explicit thinking/effort
+   level and leave headroom; log finishReason + usage when output is empty. (source: prod bug
+   found by the human, 2026-10-04)

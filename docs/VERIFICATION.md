@@ -35,6 +35,7 @@ Verification is batched into Block 6 (end of day). Be honest: mark who actually 
 | 2026-10-03 | Agent tools (prod) | `agent tools kurious` lists wall_list, card_get, my_cards, usage_today; `usage_today` and `wall_list` return live data | `npx deepspace agent tools/invoke` | agent | pass | Read-only, free; identity from the verified agent token |
 | 2026-10-03 | Daily cap (prod) | Test account's 6th card that day refused: POST /api/ask 429, UI shows the "owl nap" copy | live spec + `deepspace logs` | agent | pass | Found by accident while verifying knowledge |
 | 2026-10-03 | Managed knowledge (prod) | 26 misconception cards seeded on first card; after moving the lookup alongside safety (12 s timeout), "Why do camels have humps?" retrieved `camel-humps@1.00` and the card opens "A camel's hump isn't full of water, it's full of fat." (Checked, 20 s) | live spec + `deepspace logs --search make-card` | agent | pass | First two searches timed out at 4 s (failed open, cards still made) -> fixed |
+| 2026-10-04 | Human run (follow-up step) | A follow-up card ("How do scientists predict when a volcano will erupt?") failed with "Oops", also on Retry | human found; agent traced via `deepspace logs` | human + agent | fail -> fixed | Writer thinking used the whole 1200-token budget (finishReason=length, 1199 reasoning tokens). Fixed (low-effort thinking, 6000 tokens); same question then ready + Checked in 21 s |
 
 ## Human interventions
 Every time you overrode, corrected or took over from the agent.
