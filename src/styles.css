@@ -1,7 +1,4 @@
 @import "tailwindcss" source(none);
-@import "@fontsource-variable/fredoka/wght.css";
-@import "@fontsource/andika/400.css";
-@import "@fontsource/andika/700.css";
 @import "./themes.css";
 
 /* Scan local source + SDK components for Tailwind class usage */

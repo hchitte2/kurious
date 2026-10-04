@@ -4,6 +4,12 @@ import { createRoot, hydrateRoot } from 'react-dom/client'
 import { routes } from '@generouted/react-router/lazy'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { installStaleChunkRecovery } from './stale-chunk-recovery'
+// Fonts are imported here, not via @import in styles.css: Tailwind's PostCSS
+// inlines @imported CSS without rebasing its relative url()s, so the font files
+// 404'd in production builds. Vite rewrites url()s for CSS imported from JS.
+import '@fontsource-variable/fredoka/wght.css'
+import '@fontsource/andika/400.css'
+import '@fontsource/andika/700.css'
 import './styles.css'
 
 async function main() {
