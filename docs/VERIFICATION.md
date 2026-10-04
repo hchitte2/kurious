@@ -11,7 +11,7 @@ Verification is batched into Block 6 (end of day). Be honest: mark who actually 
 - [x] A follow-up chip creates a linked card, and the trail shows the chain (human; first attempt found the writer bug, fixed)
 - [x] Asking the same question again reuses the card instantly and doesn't count toward the cap (human + agent)
 - [x] "Why is it cold in winter?" gets a correct answer (tilt, not distance) and the Checked badge (human)
-- [ ] A sensitive question gets a gentle answer; an unsafe one gets the grown-up redirect; a question with personal details is never public (gentle + personal: human, pass on iPhone; unsafe: still to run)
+- [x] A sensitive question gets a gentle answer; an unsafe one gets the grown-up redirect; a question with personal details is never public (human, iPhone: gentle + personal kept off the Wall; "why dows mu tummy hurt every day?" -> grown-up redirect, typos and all)
 - [x] The daily cap is enforced server-side (calling the API directly is still blocked) (agent: 429 in prod logs, owl-nap copy shown)
 - [x] No secrets in the repo (`git grep` sweep); `reference/` is gitignored (agent)
 - [x] Works at phone width (human, iPhone)

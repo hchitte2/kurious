@@ -52,7 +52,7 @@ export const DAILY_CARD_CAP = 5
  * credits. Measured: about $0.20 per card on the free plan (all stages). Raise both
  * caps after topping up credits (`npx deepspace app usage`).
  */
-export const GLOBAL_DAILY_CARD_CAP = 12
+export const GLOBAL_DAILY_CARD_CAP = 8
 
 // ── Writing rules per age band ──────────────────────────────────────────────
 

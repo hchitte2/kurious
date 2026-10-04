@@ -3,6 +3,14 @@
 **Live URL:** https://kurious.app.space
 **Repository:** https://github.com/hchitte2/kurious
 
+## Trying it (for reviewers)
+- Browse the Wonder Wall and open any card without signing in; tap the play button to hear it.
+- Sign in to ask your own question. The app is owner-billed on DeepSpace's free plan, so new
+  cards are capped at 5 per person and 8 per day across the app; Kuri says it "needs an owl nap"
+  when a cap is hit. Asking a question that has already been answered is instant and free.
+- Add `?fixtures` to any URL (e.g. https://kurious.app.space/c/fx-sun-night?fixtures) to see
+  every card state, including generating, declined and error, without spending anything.
+
 ## What I built
 Kurious answers a kid's "why?" with one illustrated, narrated paragraph, written for their age
 (4-5, 6-8 or 9-11) and checked for truth by a second AI from a different company. Every card
