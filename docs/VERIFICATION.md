@@ -47,3 +47,5 @@ Every time you overrode, corrected or took over from the agent.
 | Planning | Proposed continuous verification per milestone | Batched into an end-of-day pass to ship in one day |
 | 2026-10-03 setup | Recommended ElevenLabs narration (S1) and flagged the $5 free-plan budget | Switched to the cheapest narration (OpenAI tts-1) to get it done |
 | 2026-10-03 setup | Found the kit's hooks, agents and kid-content skills missing and asked | Told the agent to write them |
+| 2026-10-04 checklist | Reported the app as done and verified | Found a follow-up card failing ("Oops", also on Retry) -> agent traced it to the writer's token budget and fixed it |
+| 2026-10-04 checklist | Fixture screenshots looked on-brand | On my iPhone the fonts were system fonts -> agent found the font files 404'd in production and fixed the build |

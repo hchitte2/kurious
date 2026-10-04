@@ -66,9 +66,16 @@ through a public card's trail), smoke tests, and live end-to-end runs on dev and
 See `docs/VERIFICATION.md` for the log and `docs/PLAN.md` for decisions.
 
 ## What I verified or changed myself
-- Chose the cheapest narration (OpenAI tts-1) to stay inside the free plan's $5 of credits.
-- Asked the agent to write the missing kit (hooks, subagents, kid-content skills).
-- Critical-path checklist on the deployed app: see `docs/VERIFICATION.md`.
+- Chose the cheapest narration (OpenAI tts-1) to stay inside the free plan's $5 of credits, and
+  asked the agent to write the missing kit (hooks, subagents, kid-content skills).
+- Ran the critical-path checklist on the live app (laptop + iPhone): signed-out browsing and
+  sign-in gate, instant free reuse of "Why is it cold in winter?" (tilt, Checked), a new card
+  building live, follow-up trails, a gentle + personal question kept off the Wall, audio and
+  layout on a phone.
+- Found two real bugs the agent's tests missed, both fixed the same day:
+  - A hard follow-up ("How do scientists predict when a volcano will erupt?") always failed:
+    the writer model spent its whole token budget thinking (1199 of 1200 tokens).
+  - On my phone the app showed system fonts: the font files 404'd in production builds only.
 
 ## What I'd do next
 - Top up credits and raise the daily caps (5 per user, 12 global) in `src/config.ts`.
