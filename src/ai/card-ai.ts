@@ -107,6 +107,8 @@ async function runWriter(env: Env, input: WriteInput, prompt: string, signal: Ab
     maxOutputTokens: MODELS.writer.maxOutputTokens,
     maxRetries: 0,
     abortSignal: signal,
+    // A short paragraph needs little deliberation; truth is re-checked by the checker.
+    providerOptions: { anthropic: { thinking: { type: 'adaptive' }, effort: 'low' } },
   })
   // Diagnostics: the SDK leaves `output` empty when the last step didn't finish
   // with "stop" and produced no text. Say why, instead of a bare NoOutput error.

@@ -32,7 +32,10 @@ export type ModelChoice = {
 
 export const MODELS = {
   /** Writes the paragraph, key idea, follow-ups and image prompt. */
-  writer: { provider: 'anthropic', modelId: 'claude-sonnet-5', maxOutputTokens: 1200 },
+  // Sonnet 5 thinks by default and thinking counts toward maxOutputTokens: at 1200
+  // a hard question spent 1199 tokens thinking and returned no card. The writer
+  // runs adaptive thinking at low effort (src/ai/card-ai.ts) with room to spare.
+  writer: { provider: 'anthropic', modelId: 'claude-sonnet-5', maxOutputTokens: 6000 },
   /** Checks truth and age fit. Deliberately a different provider from the writer. Use reasoningEffort 'low'. */
   checker: { provider: 'openai', modelId: 'gpt-6-sol', maxOutputTokens: 4000 },
   /** One cheap classification: ok | gentle | decline, plus `personal`. */
