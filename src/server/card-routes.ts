@@ -196,8 +196,18 @@ const isPublicCard = (card: CardRecord) => card.data.wall === 'public' && card.d
  */
 export async function readWallPage(env: Env, cursor: string | null, limit: number): Promise<WallPage> {
   const rows = await queryCards(appTools(env), { wall: 'public', status: 'ready' }, WALL_SCAN_LIMIT)
-  // Reused copies repeat their source's content: keep them off the Wall.
-  const cards = rows.filter((card) => isPublicCard(card) && !card.data.reusedFromCardId).sort(newestFirst)
+  // Reused copies repeat their source's content, and two people can ask the same
+  // question separately: show only the newest card per question + age band.
+  const seen = new Set<string>()
+  const cards = rows
+    .filter((card) => isPublicCard(card) && !card.data.reusedFromCardId)
+    .sort(newestFirst)
+    .filter((card) => {
+      const key = `${card.data.ageBand}:${card.data.normalizedQuestion}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
   const after = cursor ? parseCursor(cursor) : null
   const start = after ? cards.findIndex((card) => olderThan(card, after)) : 0
   const from = start < 0 ? cards.length : start
